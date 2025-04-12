@@ -34,10 +34,12 @@
     <input type="range" id="emaThickness" min="1" max="5" value="2">
     <span id="thicknessLabel">2</span> px
   </div>
+  <div style="display: flex; justify-content: center; gap: 2rem; margin-bottom: 0.5rem;">
+    <div style="width: 300px; text-align: center; font-size: 0.9rem; color: yellow;">1 Minute</div>
+    <div style="width: 300px; text-align: center; font-size: 0.9rem; color: yellow;">5 Minutes</div>
+    <div style="width: 300px; text-align: center; font-size: 0.9rem; color: yellow;" id="rightChartLabel">15 Minutes</div>
+  </div>
   <div style="display: flex; justify-content: center; gap: 2rem; margin-bottom: 2rem;">
-    <div style="text-align: center; font-size: 0.9rem; color: yellow; margin-bottom: 0.2rem;">1 Minute</div>
-    <div style="text-align: center; font-size: 0.9rem; color: yellow; margin-bottom: 0.2rem;">5 Minutes</div>
-    <div style="text-align: center; font-size: 0.9rem; color: yellow; margin-bottom: 0.2rem;" id="rightChartLabel">15 Minutes</div>
     <div style="text-align: center;">
       <canvas id="chart1" width="300" height="300"></canvas>
       <div id="signal1" style="margin-top: 0.5rem; font-weight: bold;">...</div>
