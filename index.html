@@ -45,12 +45,26 @@
 
   <script>
     async function fetchKlines(symbol, interval, limit = 100) {
-      const url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`;
-      const res = await fetch(url);
-      const raw = await res.json();
-      return raw.map(c => ({
-        time: c[0], open: +c[1], high: +c[2], low: +c[3], close: +c[4]
-      }));
+      const endpoints = [
+        `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`,
+        `https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`
+      ];
+
+      for (let url of endpoints) {
+        try {
+          const res = await fetch(url);
+          const raw = await res.json();
+          if (Array.isArray(raw)) {
+            return raw.map(c => ({
+              time: c[0], open: +c[1], high: +c[2], low: +c[3], close: +c[4]
+            }));
+          }
+        } catch (e) {
+          console.warn(`Failed to fetch from ${url}`, e);
+        }
+      }
+
+      return [];
     }
 
     function calculateEMA(data, length) {
