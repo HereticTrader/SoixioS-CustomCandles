@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>SOIXIOS Custom Chart v1.6</title>
+  <title>SOIXIOS Custom Chart v1.8</title>
   <style>
     body { background: black; color: white; font-family: monospace; padding: 2rem; }
     canvas { background: #111; border: 1px solid #444; display: block; margin: 1rem auto; }
@@ -11,13 +11,12 @@
   </style>
 </head>
 <body>
-  <h1>📊 SOIXIOS Custom Chart <span style='font-size: 0.8rem; color: #888;'>v1.6</span></h1>
+  <h1>📊 SOIXIOS Custom Chart <span style='font-size: 0.8rem; color: #888;'>v1.8</span></h1>
   <div style="display: flex; justify-content: center; align-items: center; gap: 1rem; margin-bottom: 1rem;">
-  <label for="symbol">Symbol:</label>
-  <input type="text" id="symbol" value="BTCUSDT" style="width: 120px; text-align: center; font-weight: bold;">
-
-  <button onclick="applySettings()">Load</button>
-</div>
+    <label for="symbol">Symbol:</label>
+    <input type="text" id="symbol" value="BTCUSDT" style="width: 120px; text-align: center; font-weight: bold;">
+    <button onclick="applySettings()">Load</button>
+  </div>
   <h2 id="chartLabel" style="text-align: center; color: yellow; margin-top: 1rem;">Loading BTCUSDT 1m Chart...</h2>
   <div style="text-align:center; margin-bottom: 1rem;">
     <label for="emaThickness">EMA Line Width:</label>
@@ -27,7 +26,7 @@
   <div style="display: flex; justify-content: center; gap: 2rem; margin-bottom: 0.5rem;">
     <div style="width: 300px; text-align: center; font-size: 0.9rem; color: yellow;">1 Minute</div>
     <div style="width: 300px; text-align: center; font-size: 0.9rem; color: yellow;">5 Minutes</div>
-    <div style="width: 300px; text-align: center; font-size: 0.9rem; color: yellow;" id="rightChartLabel">15 Minutes</div>
+    <div style="width: 300px; text-align: center; font-size: 0.9rem; color: yellow;">15 Minutes</div>
   </div>
   <div style="display: flex; justify-content: center; gap: 2rem; margin-bottom: 2rem;">
     <div style="text-align: center;">
@@ -45,16 +44,12 @@
   </div>
 
   <script>
-    async function fetchKlines(symbol = "BTCUSDT", interval = "1m", limit = 100) {
+    async function fetchKlines(symbol, interval, limit = 100) {
       const url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`;
       const res = await fetch(url);
       const raw = await res.json();
       return raw.map(c => ({
-        time: c[0],
-        open: parseFloat(c[1]),
-        high: parseFloat(c[2]),
-        low: parseFloat(c[3]),
-        close: parseFloat(c[4])
+        time: c[0], open: +c[1], high: +c[2], low: +c[3], close: +c[4]
       }));
     }
 
@@ -69,14 +64,11 @@
     }
 
     function drawChart(canvasId, signalId, data, ema8, ema13) {
-  const canvas = document.getElementById(canvasId);
-  const ctx = canvas.getContext("2d");
-  const padding = 20;
       const canvas = document.getElementById(canvasId);
       const ctx = canvas.getContext("2d");
+      const padding = 20;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      const padding = 20;
       const w = canvas.width - 2 * padding;
       const h = canvas.height - 2 * padding;
       const candleWidth = w / data.length;
@@ -105,7 +97,6 @@
 
       data.forEach((d, i) => {
         const x = padding + i * candleWidth;
-
         let color = "gray";
         if (ema2[i] > ema8[i] && ema8[i] > ema13[i]) color = "#00ffff";
         else if (ema2[i] < ema8[i] && ema8[i] < ema13[i]) color = "#ff00ff";
@@ -136,48 +127,25 @@
       drawLine(ema8, "#00ffff");
       drawLine(ema13, "#ff00ff");
 
-  // Show last price
-  const lastPrice = data[data.length - 1].close;
-  const yLast = y(lastPrice);
-  ctx.fillStyle = "white";
-  ctx.font = "bold 12px monospace";
-  ctx.fillText(lastPrice.toFixed(4), canvas.width - padding - 60, yLast - 6);
-        // Draw EMA
-      function drawLine(ema, color) {
-        ctx.beginPath();
-        ctx.strokeStyle = color;
-        ctx.lineWidth = parseFloat(document.getElementById("emaThickness").value);
-        ema.forEach((val, i) => {
-          const x = padding + i * candleWidth + candleWidth / 2;
-          const yPos = y(val);
-          if (i === 0) ctx.moveTo(x, yPos);
-          else ctx.lineTo(x, yPos);
-        });
-        ctx.stroke();
-        ctx.lineWidth = 1;
-      }
-
-      drawLine(ema8, "#00ffff");  // EMA8 - turquoise
-      drawLine(ema13, "#ff00ff"); // EMA13 - pink // EMA13 - pink
+      const lastPrice = data.at(-1).close;
+      ctx.fillStyle = "white";
+      ctx.font = "bold 12px monospace";
+      ctx.fillText(lastPrice.toFixed(4), canvas.width - padding - 60, y(lastPrice) - 6);
     }
 
     async function render(symbol = "BTCUSDT") {
       const intervals = ["1m", "5m", "15m"];
-      document.getElementById("rightChartLabel").textContent = "15 Minutes";
+      for (let i = 0; i < intervals.length; i++) {
         const data = await fetchKlines(symbol, intervals[i]);
         const ema8 = calculateEMA(data, 8);
         const ema13 = calculateEMA(data, 13);
         drawChart(`chart${i + 1}`, `signal${i + 1}`, data, ema8, ema13);
-        ctx.fillStyle = '#ffffff';
-        ctx.font = '12px monospace';
-        const lastPrice = data[data.length - 1].close.toFixed(4);
-        const yPos = padding + h - ((data[data.length - 1].close - min) / (max - min)) * h;
-        ctx.fillText(lastPrice, canvas.width - padding - 50, yPos);
       }
     }
 
     function applySettings() {
       const symbol = document.getElementById("symbol").value.toUpperCase();
+      document.getElementById("chartLabel").textContent = `Loading ${symbol} 1m Chart...`;
       render(symbol);
     }
 
@@ -185,8 +153,8 @@
       document.getElementById("thicknessLabel").textContent = document.getElementById("emaThickness").value;
     });
 
-    render();
-setInterval(() => applySettings(), 5000);
+    applySettings();
+    setInterval(() => applySettings(), 5000);
   </script>
 </body>
 </html>
