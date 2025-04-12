@@ -83,7 +83,7 @@
   <script>
     async function fetchBinanceNews() {
       try {
-        const res = await fetch('https://api.allorigins.win/get?url=' + encodeURIComponent('https://www.binance.com/en/rss'));
+        const res = await fetch('https://api.allorigins.win/get?url=' + encodeURIComponent('https://www.binance.com/en/rss'));        
         const data = await res.json();
         const parser = new DOMParser();
         const doc = parser.parseFromString(data.contents, "text/xml");
@@ -99,6 +99,7 @@
         });
       } catch (e) {
         console.warn("Binance news fetch failed", e);
+        document.getElementById("binance-news-feed").innerHTML = '<li style="color:red;">Binance feed failed.</li>'
       }
     }
 
@@ -120,6 +121,7 @@
         });
       } catch (e) {
         console.warn("Bitcoin news fetch failed", e);
+        document.getElementById("news-feed").innerHTML = '<li style="color:red;">Bitcoin feed failed.</li>'
       }
     }
 
