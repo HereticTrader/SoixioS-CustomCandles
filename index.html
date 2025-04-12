@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>SOIXIOS Custom Chart v2.0</title>
+  <title>SOIXIOS Custom Chart v2.1</title>
   <style>
     body { background: black; color: white; font-family: monospace; padding: 2rem; }
     canvas { background: #111; border: 1px solid #444; display: block; margin: 1rem auto; }
@@ -33,7 +33,7 @@
   </style>
 </head>
 <body>
-  <h1>📊 SOIXIOS Custom Chart <span style='font-size: 0.8rem; color: #888;'>v2.0</span></h1>
+  <h1>📊 SOIXIOS Custom Chart <span style='font-size: 0.8rem; color: #888;'>v2.1</span></h1>
   <div style="display: flex; justify-content: center; align-items: center; gap: 1rem; margin-bottom: 1rem;">
     <label for="symbol">Symbol:</label>
     <input type="text" id="symbol" value="BTCUSDT" style="width: 120px; text-align: center; font-weight: bold;">
@@ -101,8 +101,32 @@
         console.warn("Binance news fetch failed", e);
       }
     }
+
+    async function fetchBitcoinNews() {
+      try {
+        const res = await fetch('https://api.allorigins.win/get?url=' + encodeURIComponent('https://www.coindesk.com/arc/outboundfeeds/rss/'));
+        const data = await res.json();
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(data.contents, "text/xml");
+        const items = doc.querySelectorAll("item");
+
+        const list = document.getElementById("news-feed");
+        list.innerHTML = "";
+        items.forEach((item, i) => {
+          if (i >= 10) return;
+          const li = document.createElement("li");
+          li.innerHTML = `<a href="${item.querySelector("link")?.textContent}" target="_blank" style="color: #ccc; text-decoration: none;">🗞️ ${item.querySelector("title")?.textContent}</a>`;
+          list.appendChild(li);
+        });
+      } catch (e) {
+        console.warn("Bitcoin news fetch failed", e);
+      }
+    }
+
     fetchBinanceNews();
+    fetchBitcoinNews();
     setInterval(fetchBinanceNews, 120000);
+    setInterval(fetchBitcoinNews, 120000);
   </script>
 </body>
 </html>
