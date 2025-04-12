@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>SOIXIOS Custom Chart v2.6</title>
+  <title>SOIXIOS Custom Chart v2.0</title>
   <style>
     body { background: black; color: white; font-family: monospace; padding: 2rem; }
     canvas { background: #111; border: 1px solid #444; display: block; margin: 1rem auto; }
@@ -33,7 +33,7 @@
   </style>
 </head>
 <body>
-  <h1>📊 SOIXIOS Custom Chart <span style='font-size: 0.8rem; color: #888;'>v2.6</span></h1>
+  <h1>📊 SOIXIOS Custom Chart <span style='font-size: 0.8rem; color: #888;'>v2.0</span></h1>
   <div style="display: flex; justify-content: center; align-items: center; gap: 1rem; margin-bottom: 1rem;">
     <label for="symbol">Symbol:</label>
     <input type="text" id="symbol" value="BTCUSDT" style="width: 120px; text-align: center; font-weight: bold;">
@@ -72,92 +72,37 @@
         <li>Loading news...</li>
       </ul>
     </div>
+    <div class="news-box">
+      <h2 class="news-title">🧵 Binance News</h2>
+      <ul id="binance-news-feed" class="news-list">
+        <li>Loading news...</li>
+      </ul>
+    </div>
   </div>
 
   <script>
-    function drawChart(canvasId, data, emaWidth = 2) {
-      const ctx = document.getElementById(canvasId).getContext('2d');
-      ctx.clearRect(0, 0, 450, 420);
-      const w = 450, h = 420, pad = 30;
+    async function fetchBinanceNews() {
+      try {
+        const res = await fetch('https://api.allorigins.win/get?url=' + encodeURIComponent('https://www.binance.com/en/rss'));
+        const data = await res.json();
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(data.contents, "text/xml");
+        const items = doc.querySelectorAll("item");
 
-      const closes = data.map(d => parseFloat(d[4]));
-      const highs = data.map(d => parseFloat(d[2]));
-      const lows = data.map(d => parseFloat(d[3]));
-      const opens = data.map(d => parseFloat(d[1]));
-      const max = Math.max(...highs), min = Math.min(...lows);
-      const scaleY = val => h - pad - ((val - min) / (max - min)) * (h - pad * 2);
-      const scaleX = i => pad + i * ((w - pad * 2) / (data.length - 1));
-
-      const ema = (arr, len) => {
-        const k = 2 / (len + 1);
-        let ema = arr[0];
-        return arr.map((val, i) => i === 0 ? val : (ema = val * k + ema * (1 - k)));
-      };
-
-      const ema2 = ema(closes, 2);
-      const ema8 = ema(closes, 8);
-      const ema13 = ema(closes, 13);
-
-      for (let i = 0; i < data.length; i++) {
-        const x = scaleX(i);
-        const openY = scaleY(opens[i]);
-        const closeY = scaleY(closes[i]);
-        const highY = scaleY(highs[i]);
-        const lowY = scaleY(lows[i]);
-
-        const color = ema2[i] > ema8[i] && ema8[i] > ema13[i] ? '#00ffff'
-                    : ema2[i] < ema8[i] && ema8[i] < ema13[i] ? '#ff00ff'
-                    : '#999999';
-
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.moveTo(x, highY);
-        ctx.lineTo(x, lowY);
-        ctx.stroke();
-
-        ctx.beginPath();
-        ctx.moveTo(x - 2, openY);
-        ctx.lineTo(x + 2, openY);
-        ctx.stroke();
-
-        ctx.beginPath();
-        ctx.moveTo(x - 2, closeY);
-        ctx.lineTo(x + 2, closeY);
-        ctx.stroke();
-      }
-
-      const drawEMA = (arr, color) => {
-        ctx.strokeStyle = color;
-        ctx.lineWidth = emaWidth;
-        ctx.beginPath();
-        arr.forEach((val, i) => {
-          const x = scaleX(i), y = scaleY(val);
-          if (i === 0) ctx.moveTo(x, y);
-          else ctx.lineTo(x, y);
+        const list = document.getElementById("binance-news-feed");
+        list.innerHTML = "";
+        items.forEach((item, i) => {
+          if (i >= 10) return;
+          const li = document.createElement("li");
+          li.innerHTML = <a href="${item.querySelector("link")?.textContent}" target="_blank" style="color: #ccc; text-decoration: none;">🔗 ${item.querySelector("title")?.textContent}</a>;
+          list.appendChild(li);
         });
-        ctx.stroke();
-      };
-
-      drawEMA(ema8, '#00ffff');
-      drawEMA(ema13, '#ff00ff');
-
-      ctx.fillStyle = 'yellow';
-      ctx.font = 'bold 14px monospace';
-      ctx.fillText('Price: ' + closes.at(-1).toFixed(4), scaleX(data.length - 1) - 60, scaleY(closes.at(-1)) - 6);
-      ctx.fillText('H: ' + max.toFixed(4), 10, 12);
-      ctx.fillText('L: ' + min.toFixed(4), 10, h - 8);
-
-      // Draw small yellow circles on last 8 candle closes
-      ctx.fillStyle = 'yellow';
-      for (let i = data.length - 8; i < data.length; i++) {
-        const x = scaleX(i);
-        const y = scaleY(closes[i]);
-        ctx.beginPath();
-        ctx.arc(x, y, 2.5, 0, 2 * Math.PI);
-        ctx.fill();
+      } catch (e) {
+        console.warn("Binance news fetch failed", e);
       }
     }
+    fetchBinanceNews();
+    setInterval(fetchBinanceNews, 120000);
   </script>
 </body>
 </html>
