@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>SOIXIOS Custom Chart v2.4</title>
+  <title>SOIXIOS Custom Chart v2.5</title>
   <style>
     body { background: black; color: white; font-family: monospace; padding: 2rem; }
     canvas { background: #111; border: 1px solid #444; display: block; margin: 1rem auto; }
@@ -33,7 +33,7 @@
   </style>
 </head>
 <body>
-  <h1>📊 SOIXIOS Custom Chart <span style='font-size: 0.8rem; color: #888;'>v2.4</span></h1>
+  <h1>📊 SOIXIOS Custom Chart <span style='font-size: 0.8rem; color: #888;'>v2.5</span></h1>
   <div style="display: flex; justify-content: center; align-items: center; gap: 1rem; margin-bottom: 1rem;">
     <label for="symbol">Symbol:</label>
     <input type="text" id="symbol" value="BTCUSDT" style="width: 120px; text-align: center; font-weight: bold;">
@@ -64,6 +64,7 @@
       <div id="signal3" style="margin-top: 0.5rem; font-weight: bold;">...</div>
     </div>
   </div>
+
   <div class="news-container">
     <div class="news-box">
       <h2 class="news-title">📰 Latest Bitcoin News</h2>
@@ -72,6 +73,7 @@
       </ul>
     </div>
   </div>
+
   <script>
     function drawChart(canvasId, data, emaWidth = 2) {
       const ctx = document.getElementById(canvasId).getContext('2d');
@@ -81,6 +83,7 @@
       const closes = data.map(d => parseFloat(d[4]));
       const highs = data.map(d => parseFloat(d[2]));
       const lows = data.map(d => parseFloat(d[3]));
+      const opens = data.map(d => parseFloat(d[1]));
       const max = Math.max(...highs), min = Math.min(...lows);
       const scaleY = val => h - pad - ((val - min) / (max - min)) * (h - pad * 2);
       const scaleX = i => pad + i * ((w - pad * 2) / (data.length - 1));
@@ -95,20 +98,32 @@
       const ema8 = ema(closes, 8);
       const ema13 = ema(closes, 13);
 
-      for (let i = 1; i < data.length; i++) {
-        const x1 = scaleX(i - 1), x2 = scaleX(i);
-        const y1 = scaleY(closes[i - 1]);
-        const y2 = scaleY(closes[i]);
+      for (let i = 0; i < data.length; i++) {
+        const x = scaleX(i);
+        const openY = scaleY(opens[i]);
+        const closeY = scaleY(closes[i]);
+        const highY = scaleY(highs[i]);
+        const lowY = scaleY(lows[i]);
 
         const color = ema2[i] > ema8[i] && ema8[i] > ema13[i] ? '#00ffff'
                     : ema2[i] < ema8[i] && ema8[i] < ema13[i] ? '#ff00ff'
                     : '#999999';
 
         ctx.strokeStyle = color;
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 1.5;
         ctx.beginPath();
-        ctx.moveTo(x1, y1);
-        ctx.lineTo(x2, y2);
+        ctx.moveTo(x, highY);
+        ctx.lineTo(x, lowY);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(x - 2, openY);
+        ctx.lineTo(x + 2, openY);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(x - 2, closeY);
+        ctx.lineTo(x + 2, closeY);
         ctx.stroke();
       }
 
@@ -129,7 +144,7 @@
 
       ctx.fillStyle = 'yellow';
       ctx.font = 'bold 14px monospace';
-      ctx.fillText('Price: ' + closes[closes.length - 1].toFixed(4), scaleX(data.length - 1) - 60, scaleY(closes[closes.length - 1]) - 6);
+      ctx.fillText('Price: ' + closes.at(-1).toFixed(4), scaleX(data.length - 1) - 60, scaleY(closes.at(-1)) - 6);
       ctx.fillStyle = '#00ffff';
       ctx.fillText('H: ' + max.toFixed(4), 10, 12);
       ctx.fillStyle = '#ff00ff';
