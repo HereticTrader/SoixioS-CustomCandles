@@ -16,11 +16,6 @@
   <label for="symbol">Symbol:</label>
   <input type="text" id="symbol" value="BTCUSDT" style="width: 120px; text-align: center; font-weight: bold;">
 
-  <label for="interval">Right Chart:</label>
-  <select id="interval">
-  <option value="15m" selected>15m</option>
-</select>
-
   <button onclick="applySettings()">Load</button>
 </div>
   <h2 id="chartLabel" style="text-align: center; color: yellow; margin-top: 1rem;">Loading BTCUSDT 1m Chart...</h2>
@@ -74,6 +69,9 @@
     }
 
     function drawChart(canvasId, signalId, data, ema8, ema13) {
+  const canvas = document.getElementById(canvasId);
+  const ctx = canvas.getContext("2d");
+  const padding = 20;
       const canvas = document.getElementById(canvasId);
       const ctx = canvas.getContext("2d");
       ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -137,6 +135,13 @@
 
       drawLine(ema8, "#00ffff");
       drawLine(ema13, "#ff00ff");
+
+  // Show last price
+  const lastPrice = data[data.length - 1].close;
+  const yLast = y(lastPrice);
+  ctx.fillStyle = "white";
+  ctx.font = "bold 12px monospace";
+  ctx.fillText(lastPrice.toFixed(4), canvas.width - padding - 60, yLast - 6);
         // Draw EMA
       function drawLine(ema, color) {
         ctx.beginPath();
@@ -157,9 +162,8 @@
     }
 
     async function render(symbol = "BTCUSDT") {
-      const selectedRight = document.getElementById("interval").value;
-      const intervals = ["1m", "5m", selectedRight];
-      document.getElementById("rightChartLabel").textContent = selectedRight === "1h" ? "1 Hour" : (selectedRight === "4h" ? "4 Hours" : selectedRight);
+      const intervals = ["1m", "5m", "15m"];
+      document.getElementById("rightChartLabel").textContent = "15 Minutes";
         const data = await fetchKlines(symbol, intervals[i]);
         const ema8 = calculateEMA(data, 8);
         const ema13 = calculateEMA(data, 13);
