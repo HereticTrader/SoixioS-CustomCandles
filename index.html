@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>SOIXIOS Custom Chart v1.8</title>
+  <title>SOIXIOS Custom Chart v1.9</title>
   <style>
     body { background: black; color: white; font-family: monospace; padding: 2rem; }
     canvas { background: #111; border: 1px solid #444; display: block; margin: 1rem auto; }
@@ -11,7 +11,7 @@
   </style>
 </head>
 <body>
-  <h1>📊 SOIXIOS Custom Chart <span style='font-size: 0.8rem; color: #888;'>v1.8</span></h1>
+  <h1>📊 SOIXIOS Custom Chart <span style='font-size: 0.8rem; color: #888;'>v1.9</span></h1>
   <div style="display: flex; justify-content: center; align-items: center; gap: 1rem; margin-bottom: 1rem;">
     <label for="symbol">Symbol:</label>
     <input type="text" id="symbol" value="BTCUSDT" style="width: 120px; text-align: center; font-weight: bold;">
@@ -24,21 +24,21 @@
     <span id="thicknessLabel">2</span> px
   </div>
   <div style="display: flex; justify-content: center; gap: 2rem; margin-bottom: 0.5rem;">
-    <div style="width: 300px; text-align: center; font-size: 0.9rem; color: yellow;">1 Minute</div>
-    <div style="width: 300px; text-align: center; font-size: 0.9rem; color: yellow;">5 Minutes</div>
-    <div style="width: 300px; text-align: center; font-size: 0.9rem; color: yellow;">15 Minutes</div>
+    <div style="width: 400px; text-align: center; font-size: 0.9rem; color: yellow;">1 Minute</div>
+    <div style="width: 400px; text-align: center; font-size: 0.9rem; color: yellow;">5 Minutes</div>
+    <div style="width: 400px; text-align: center; font-size: 0.9rem; color: yellow;">15 Minutes</div>
   </div>
   <div style="display: flex; justify-content: center; gap: 2rem; margin-bottom: 2rem;">
     <div style="text-align: center;">
-      <canvas id="chart1" width="400" height="400"></canvas>
+      <canvas id="chart1" width="450" height="420"></canvas>
       <div id="signal1" style="margin-top: 0.5rem; font-weight: bold;">...</div>
     </div>
     <div style="text-align: center;">
-      <canvas id="chart2" width="400" height="400"></canvas>
+      <canvas id="chart2" width="450" height="420"></canvas>
       <div id="signal2" style="margin-top: 0.5rem; font-weight: bold;">...</div>
     </div>
     <div style="text-align: center;">
-      <canvas id="chart3" width="400" height="400"></canvas>
+      <canvas id="chart3" width="450" height="420"></canvas>
       <div id="signal3" style="margin-top: 0.5rem; font-weight: bold;">...</div>
     </div>
   </div>
@@ -80,7 +80,7 @@
     function drawChart(canvasId, signalId, data, ema8, ema13) {
       const canvas = document.getElementById(canvasId);
       const ctx = canvas.getContext("2d");
-      const padding = 20;
+      const padding = 40;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       const w = canvas.width - 2 * padding;
@@ -142,9 +142,13 @@
       drawLine(ema13, "#ff00ff");
 
       const lastPrice = data.at(-1).close;
-      ctx.fillStyle = "white";
+      ctx.fillStyle = "yellow";
       ctx.font = "bold 12px monospace";
-      ctx.fillText(lastPrice.toFixed(4), canvas.width - padding - 60, y(lastPrice) - 6);
+      ctx.fillText(lastPrice.toFixed(4), canvas.width - padding - 60, y(lastPrice));
+
+      ctx.fillStyle = "#888";
+      ctx.fillText("H: " + Math.max(...highs).toFixed(4), 10, 20);
+      ctx.fillText("L: " + Math.min(...lows).toFixed(4), 10, canvas.height - 10);
     }
 
     async function render(symbol = "BTCUSDT") {
@@ -169,6 +173,55 @@
 
     applySettings();
     setInterval(() => applySettings(), 5000);
+  </script>
+  <div style="margin-top: 3rem; padding: 1rem; border-top: 1px solid #333; max-height: 300px; overflow-y: auto;">
+    <h2 style="color: #00ffff; font-size: 1.2rem;">📰 Latest Bitcoin News</h2>
+    <ul id="news-feed" style="list-style: none; padding-left: 0; font-size: 0.9rem;">
+      <li>Loading news...</li>
+    </ul>
+  </div>
+
+  <script>
+    async function fetchNews() {
+      const rssUrls = [
+        'https://www.coindesk.com/arc/outboundfeeds/rss/',
+        'https://cointelegraph.com/rss'
+      ];
+
+      const parser = new DOMParser();
+      const allItems = [];
+
+      for (let url of rssUrls) {
+        try {
+          const res = await fetch('https://api.allorigins.win/get?url=' + encodeURIComponent(url));
+          const json = await res.json();
+          const doc = parser.parseFromString(json.contents, "text/xml");
+          const items = doc.querySelectorAll("item");
+
+          items.forEach(item => {
+            allItems.push({
+              title: item.querySelector("title")?.textContent,
+              link: item.querySelector("link")?.textContent
+            });
+          });
+        } catch (e) {
+          console.error('Failed to fetch news from', url);
+        }
+      }
+
+      allItems.sort(() => Math.random() - 0.5);
+
+      const newsList = document.getElementById("news-feed");
+      newsList.innerHTML = "";
+      allItems.slice(0, 10).forEach(item => {
+        const li = document.createElement("li");
+        li.innerHTML = `<a href="${item.link}" target="_blank" style="color: #ccc; text-decoration: none;">🔗 ${item.title}</a>`;
+        newsList.appendChild(li);
+      });
+    }
+
+    fetchNews();
+    setInterval(fetchNews, 120000);
   </script>
 </body>
 </html>
