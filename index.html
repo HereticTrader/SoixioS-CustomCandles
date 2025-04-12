@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>SOIXIOS Custom Chart v2.1</title>
+  <title>SOIXIOS Custom Chart v2.3</title>
   <style>
     body { background: black; color: white; font-family: monospace; padding: 2rem; }
     canvas { background: #111; border: 1px solid #444; display: block; margin: 1rem auto; }
@@ -33,7 +33,7 @@
   </style>
 </head>
 <body>
-  <h1>📊 SOIXIOS Custom Chart <span style='font-size: 0.8rem; color: #888;'>v2.1</span></h1>
+  <h1>📊 SOIXIOS Custom Chart <span style='font-size: 0.8rem; color: #888;'>v2.3</span></h1>
   <div style="display: flex; justify-content: center; align-items: center; gap: 1rem; margin-bottom: 1rem;">
     <label for="symbol">Symbol:</label>
     <input type="text" id="symbol" value="BTCUSDT" style="width: 120px; text-align: center; font-weight: bold;">
@@ -81,54 +81,115 @@
   </div>
 
   <script>
-    async function fetchBinanceNews() {
-      try {
-        const res = await fetch('https://api.allorigins.win/get?url=' + encodeURIComponent('https://www.binance.com/en/rss'));        
-        const data = await res.json();
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(data.contents, "text/xml");
-        const items = doc.querySelectorAll("item");
+    function drawChart(canvasId, data, emaWidth = 2) {
+      const ctx = document.getElementById(canvasId).getContext('2d');
+      ctx.clearRect(0, 0, 450, 420);
+      const w = 450, h = 420, pad = 30;
 
-        const list = document.getElementById("binance-news-feed");
-        list.innerHTML = "";
-        items.forEach((item, i) => {
-          if (i >= 10) return;
-          const li = document.createElement("li");
-          li.innerHTML = `<a href="${item.querySelector("link")?.textContent}" target="_blank" style="color: #ccc; text-decoration: none;">🔗 ${item.querySelector("title")?.textContent}</a>`;
-          list.appendChild(li);
+      const closes = data.map(d => parseFloat(d[4]));
+      const highs = data.map(d => parseFloat(d[2]));
+      const lows = data.map(d => parseFloat(d[3]));
+      const max = Math.max(...highs), min = Math.min(...lows);
+      const scaleY = val => h - pad - ((val - min) / (max - min)) * (h - pad * 2);
+      const scaleX = i => pad + i * ((w - pad * 2) / (data.length - 1));
+
+      const ema = (arr, len) => {
+        const k = 2 / (len + 1);
+        let ema = arr[0];
+        return arr.map((val, i) => i === 0 ? val : (ema = val * k + ema * (1 - k)));
+      };
+
+      const ema2 = ema(closes, 2);
+      const ema8 = ema(closes, 8);
+      const ema13 = ema(closes, 13);
+
+      for (let i = 1; i < data.length; i++) {
+        const x1 = scaleX(i - 1), x2 = scaleX(i);
+        const y1 = scaleY(closes[i - 1]);
+        const y2 = scaleY(closes[i]);
+
+        const color = ema2[i] > ema8[i] && ema8[i] > ema13[i] ? '#00ffff'
+                    : ema2[i] < ema8[i] && ema8[i] < ema13[i] ? '#ff00ff'
+                    : '#999999';
+
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.stroke();
+      }
+
+      const drawEMA = (arr, color) => {
+        ctx.strokeStyle = color;
+        ctx.lineWidth = emaWidth;
+        ctx.beginPath();
+        arr.forEach((val, i) => {
+          const x = scaleX(i), y = scaleY(val);
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
         });
+        ctx.stroke();
+      };
+
+      drawEMA(ema2, '#ffff00');
+      drawEMA(ema8, '#00ffff');
+      drawEMA(ema13, '#ff00ff');
+
+      ctx.fillStyle = 'yellow';
+      ctx.font = 'bold 14px monospace';
+      ctx.fillText(closes[closes.length - 1].toFixed(4), scaleX(data.length - 1) - 30, scaleY(closes[closes.length - 1]) - 6);
+      ctx.fillText('H: ' + max.toFixed(4), 10, 12);
+      ctx.fillText('L: ' + min.toFixed(4), 10, h - 8);
+    }
+
+    async function fetchChartData(symbol, interval, canvasId, signalId) {
+      try {
+        const res = await fetch(`https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=${interval}&limit=100`);
+        const data = await res.json();
+        const closes = data.map(d => parseFloat(d[4]));
+        const ema = (arr, len) => {
+          const k = 2 / (len + 1);
+          let ema = arr[0];
+          return arr.map((val, i) => i === 0 ? val : (ema = val * k + ema * (1 - k)));
+        };
+        const ema2 = ema(closes, 2);
+        const ema8 = ema(closes, 8);
+        const ema13 = ema(closes, 13);
+
+        let signal = 'EMA NONE';
+        if (ema2.at(-1) > ema8.at(-1) && ema8.at(-1) > ema13.at(-1)) signal = 'EMA LONG';
+        if (ema2.at(-1) < ema8.at(-1) && ema8.at(-1) < ema13.at(-1)) signal = 'EMA SHORT';
+        document.getElementById(signalId).innerText = signal;
+        document.getElementById(signalId).style.color = signal.includes('LONG') ? '#00ffff' : signal.includes('SHORT') ? '#ff00ff' : 'gray';
+
+        const width = parseInt(document.getElementById('emaThickness').value);
+        drawChart(canvasId, data, width);
       } catch (e) {
-        console.warn("Binance news fetch failed", e);
-        document.getElementById("binance-news-feed").innerHTML = '<li style="color:red;">Binance feed failed.</li>'
+        console.error("Chart fetch failed", e);
+        document.getElementById(signalId).innerText = '...';
       }
     }
 
-    async function fetchBitcoinNews() {
-      try {
-        const res = await fetch('https://api.allorigins.win/get?url=' + encodeURIComponent('https://www.coindesk.com/arc/outboundfeeds/rss/'));
-        const data = await res.json();
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(data.contents, "text/xml");
-        const items = doc.querySelectorAll("item");
-
-        const list = document.getElementById("news-feed");
-        list.innerHTML = "";
-        items.forEach((item, i) => {
-          if (i >= 10) return;
-          const li = document.createElement("li");
-          li.innerHTML = `<a href="${item.querySelector("link")?.textContent}" target="_blank" style="color: #ccc; text-decoration: none;">🗞️ ${item.querySelector("title")?.textContent}</a>`;
-          list.appendChild(li);
-        });
-      } catch (e) {
-        console.warn("Bitcoin news fetch failed", e);
-        document.getElementById("news-feed").innerHTML = '<li style="color:red;">Bitcoin feed failed.</li>'
-      }
+    function applySettings() {
+      const symbol = document.getElementById("symbol").value.toUpperCase();
+      document.getElementById("chartLabel").innerText = `Loading ${symbol} 1m Chart...`;
+      fetchChartData(symbol, '1m', 'chart1', 'signal1');
+      fetchChartData(symbol, '5m', 'chart2', 'signal2');
+      fetchChartData(symbol, '15m', 'chart3', 'signal3');
     }
+
+    document.getElementById("emaThickness").addEventListener("input", e => {
+      document.getElementById("thicknessLabel").innerText = e.target.value;
+      applySettings();
+    });
 
     fetchBinanceNews();
     fetchBitcoinNews();
     setInterval(fetchBinanceNews, 120000);
     setInterval(fetchBitcoinNews, 120000);
+    setInterval(applySettings, 5000);
+    applySettings();
   </script>
 </body>
 </html>
