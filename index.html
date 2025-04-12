@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>SOIXIOS Custom Chart v2.5</title>
+  <title>SOIXIOS Custom Chart v2.6</title>
   <style>
     body { background: black; color: white; font-family: monospace; padding: 2rem; }
     canvas { background: #111; border: 1px solid #444; display: block; margin: 1rem auto; }
@@ -33,7 +33,7 @@
   </style>
 </head>
 <body>
-  <h1>📊 SOIXIOS Custom Chart <span style='font-size: 0.8rem; color: #888;'>v2.5</span></h1>
+  <h1>📊 SOIXIOS Custom Chart <span style='font-size: 0.8rem; color: #888;'>v2.6</span></h1>
   <div style="display: flex; justify-content: center; align-items: center; gap: 1rem; margin-bottom: 1rem;">
     <label for="symbol">Symbol:</label>
     <input type="text" id="symbol" value="BTCUSDT" style="width: 120px; text-align: center; font-weight: bold;">
@@ -145,55 +145,19 @@
       ctx.fillStyle = 'yellow';
       ctx.font = 'bold 14px monospace';
       ctx.fillText('Price: ' + closes.at(-1).toFixed(4), scaleX(data.length - 1) - 60, scaleY(closes.at(-1)) - 6);
-      ctx.fillStyle = '#00ffff';
       ctx.fillText('H: ' + max.toFixed(4), 10, 12);
-      ctx.fillStyle = '#ff00ff';
       ctx.fillText('L: ' + min.toFixed(4), 10, h - 8);
-    }
 
-    async function fetchChartData(symbol, interval, canvasId, signalId) {
-      try {
-        const res = await fetch(`https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=${interval}&limit=100`);
-        const data = await res.json();
-        const closes = data.map(d => parseFloat(d[4]));
-        const ema = (arr, len) => {
-          const k = 2 / (len + 1);
-          let ema = arr[0];
-          return arr.map((val, i) => i === 0 ? val : (ema = val * k + ema * (1 - k)));
-        };
-        const ema2 = ema(closes, 2);
-        const ema8 = ema(closes, 8);
-        const ema13 = ema(closes, 13);
-
-        let signal = 'EMA NONE';
-        if (ema2.at(-1) > ema8.at(-1) && ema8.at(-1) > ema13.at(-1)) signal = 'EMA LONG';
-        if (ema2.at(-1) < ema8.at(-1) && ema8.at(-1) < ema13.at(-1)) signal = 'EMA SHORT';
-        document.getElementById(signalId).innerText = signal;
-        document.getElementById(signalId).style.color = signal.includes('LONG') ? '#00ffff' : signal.includes('SHORT') ? '#ff00ff' : 'gray';
-
-        const width = parseInt(document.getElementById('emaThickness').value);
-        drawChart(canvasId, data, width);
-      } catch (e) {
-        console.error("Chart fetch failed", e);
-        document.getElementById(signalId).innerText = '...';
+      // Draw small yellow circles on last 8 candle closes
+      ctx.fillStyle = 'yellow';
+      for (let i = data.length - 8; i < data.length; i++) {
+        const x = scaleX(i);
+        const y = scaleY(closes[i]);
+        ctx.beginPath();
+        ctx.arc(x, y, 2.5, 0, 2 * Math.PI);
+        ctx.fill();
       }
     }
-
-    function applySettings() {
-      const symbol = document.getElementById("symbol").value.toUpperCase();
-      document.getElementById("chartLabel").innerText = `Loading ${symbol} 1m Chart...`;
-      fetchChartData(symbol, '1m', 'chart1', 'signal1');
-      fetchChartData(symbol, '5m', 'chart2', 'signal2');
-      fetchChartData(symbol, '15m', 'chart3', 'signal3');
-    }
-
-    document.getElementById("emaThickness").addEventListener("input", e => {
-      document.getElementById("thicknessLabel").innerText = e.target.value;
-      applySettings();
-    });
-
-    setInterval(applySettings, 5000);
-    applySettings();
   </script>
 </body>
 </html>
