@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -15,12 +14,7 @@
   <h1>📊 SOIXIOS Custom Chart</h1>
   <div style="text-align: center; margin-bottom: 1rem;">
     <label for="symbol">Symbol:</label>
-    <select id="symbol">
-      <option value="BTCUSDT" selected>BTCUSDT</option>
-      <option value="ETHUSDT">ETHUSDT</option>
-      <option value="BNBUSDT">BNBUSDT</option>
-      <option value="DOGEUSDT">DOGEUSDT</option>
-    </select>
+    <input type="text" id="symbol" value="BTCUSDT" style="width: 120px; text-align: center; font-weight: bold;">
 
     <label for="interval" style="margin-left: 1rem;">Timeframe:</label>
     <select id="interval">
@@ -33,13 +27,26 @@
 
     <button onclick="applySettings()" style="margin-left: 1rem;">Load</button>
   </div>
+  <h2 id="chartLabel" style="text-align: center; color: yellow; margin-top: 1rem;">Loading BTCUSDT 1m Chart...</h2>
   <div style="text-align:center; margin-bottom: 1rem;">
     <label for="emaThickness">EMA Line Width:</label>
     <input type="range" id="emaThickness" min="1" max="5" value="2">
     <span id="thicknessLabel">2</span> px
   </div>
-  <h2 id="chartLabel" style="text-align: center; color: yellow; margin-top: 1rem;">Loading BTCUSDT 1m Chart...</h2>
-  <canvas id="chartCanvas" width="900" height="400"></canvas>
+  <div style="display: flex; justify-content: center; gap: 2rem; margin-bottom: 2rem;">
+    <div style="text-align: center;">
+      <canvas id="chart1" width="300" height="300"></canvas>
+      <div id="signal1" style="margin-top: 0.5rem; font-weight: bold;">...</div>
+    </div>
+    <div style="text-align: center;">
+      <canvas id="chart2" width="300" height="300"></canvas>
+      <div id="signal2" style="margin-top: 0.5rem; font-weight: bold;">...</div>
+    </div>
+    <div style="text-align: center;">
+      <canvas id="chart3" width="300" height="300"></canvas>
+      <div id="signal3" style="margin-top: 0.5rem; font-weight: bold;">...</div>
+    </div>
+  </div>
 
   <script>
     async function fetchKlines(symbol = "BTCUSDT", interval = "1m", limit = 100) {
@@ -65,8 +72,8 @@
       });
     }
 
-    function drawChart(data, ema8, ema13) {
-      const canvas = document.getElementById("chartCanvas");
+    function drawChart(canvasId, signalId, data, ema8, ema13) {
+      const canvas = document.getElementById(canvasId);
       const ctx = canvas.getContext("2d");
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -85,7 +92,18 @@
 
       const ema2 = calculateEMA(data, 2);
 
-      // Draw candles with custom logic
+      let condition = "EMA NONE";
+      if (ema2.at(-1) > ema8.at(-1) && ema8.at(-1) > ema13.at(-1)) {
+        condition = "EMA LONG";
+        document.getElementById(signalId).style.color = "#00ffff";
+      } else if (ema2.at(-1) < ema8.at(-1) && ema8.at(-1) < ema13.at(-1)) {
+        condition = "EMA SHORT";
+        document.getElementById(signalId).style.color = "#ff00ff";
+      } else {
+        document.getElementById(signalId).style.color = "gray";
+      }
+      document.getElementById(signalId).textContent = condition;
+
       data.forEach((d, i) => {
         const x = padding + i * candleWidth;
 
@@ -118,21 +136,40 @@
 
       drawLine(ema8, "#00ffff");
       drawLine(ema13, "#ff00ff");
+        ctx.fillStyle = color;
+        ctx.fillRect(x, y(Math.max(d.open, d.close)), candleWidth - 1, Math.abs(y(d.open) - y(d.close)) || 1);
+      });
+
+      // Draw EMA
+      function drawLine(ema, color) {
+        ctx.beginPath();
+        ctx.strokeStyle = color;
+        ema.forEach((val, i) => {
+          const x = padding + i * candleWidth + candleWidth / 2;
+          const yPos = y(val);
+          if (i === 0) ctx.moveTo(x, yPos);
+          else ctx.lineTo(x, yPos);
+        });
+        ctx.stroke();
+      }
+
+      drawLine(ema8, "#00ffff");  // EMA8 - turquoise
+      drawLine(ema13, "#ff00ff"); // EMA13 - pink
     }
 
-    async function render(symbol = "BTCUSDT", interval = "1m") {
-      const label = document.getElementById("chartLabel");
-      label.textContent = `Displaying ${symbol} ${interval} Chart`;
-      const data = await fetchKlines(symbol, interval);
-      const ema8 = calculateEMA(data, 8);
-      const ema13 = calculateEMA(data, 13);
-      drawChart(data, ema8, ema13);
+    async function render(symbol = "BTCUSDT") {
+      const intervals = ["1m", "5m", "15m"];
+      for (let i = 0; i < intervals.length; i++) {
+        const data = await fetchKlines(symbol, intervals[i]);
+        const ema8 = calculateEMA(data, 8);
+        const ema13 = calculateEMA(data, 13);
+        drawChart(`chart${i + 1}`, `signal${i + 1}`, data, ema8, ema13);
+      }
     }
 
     function applySettings() {
-      const symbol = document.getElementById("symbol").value;
-      const interval = document.getElementById("interval").value;
-      render(symbol, interval);
+      const symbol = document.getElementById("symbol").value.toUpperCase();
+      render(symbol);
     }
 
     document.getElementById("emaThickness").addEventListener("input", () => {
