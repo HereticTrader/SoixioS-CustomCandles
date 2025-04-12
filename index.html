@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>SOIXIOS Custom Chart v2.3</title>
+  <title>SOIXIOS Custom Chart v2.4</title>
   <style>
     body { background: black; color: white; font-family: monospace; padding: 2rem; }
     canvas { background: #111; border: 1px solid #444; display: block; margin: 1rem auto; }
@@ -33,7 +33,7 @@
   </style>
 </head>
 <body>
-  <h1>📊 SOIXIOS Custom Chart <span style='font-size: 0.8rem; color: #888;'>v2.3</span></h1>
+  <h1>📊 SOIXIOS Custom Chart <span style='font-size: 0.8rem; color: #888;'>v2.4</span></h1>
   <div style="display: flex; justify-content: center; align-items: center; gap: 1rem; margin-bottom: 1rem;">
     <label for="symbol">Symbol:</label>
     <input type="text" id="symbol" value="BTCUSDT" style="width: 120px; text-align: center; font-weight: bold;">
@@ -64,7 +64,6 @@
       <div id="signal3" style="margin-top: 0.5rem; font-weight: bold;">...</div>
     </div>
   </div>
-
   <div class="news-container">
     <div class="news-box">
       <h2 class="news-title">📰 Latest Bitcoin News</h2>
@@ -72,14 +71,7 @@
         <li>Loading news...</li>
       </ul>
     </div>
-    <div class="news-box">
-      <h2 class="news-title">🧵 Binance News</h2>
-      <ul id="binance-news-feed" class="news-list">
-        <li>Loading news...</li>
-      </ul>
-    </div>
   </div>
-
   <script>
     function drawChart(canvasId, data, emaWidth = 2) {
       const ctx = document.getElementById(canvasId).getContext('2d');
@@ -132,7 +124,6 @@
         ctx.stroke();
       };
 
-      drawEMA(ema2, '#ffff00');
       drawEMA(ema8, '#00ffff');
       drawEMA(ema13, '#ff00ff');
 
@@ -186,10 +177,6 @@
       applySettings();
     });
 
-    fetchBinanceNews();
-    fetchBitcoinNews();
-    setInterval(fetchBinanceNews, 120000);
-    setInterval(fetchBitcoinNews, 120000);
     setInterval(applySettings, 5000);
     applySettings();
   </script>
