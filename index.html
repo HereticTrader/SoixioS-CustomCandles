@@ -136,14 +136,11 @@
 
       drawLine(ema8, "#00ffff");
       drawLine(ema13, "#ff00ff");
-        ctx.fillStyle = color;
-        ctx.fillRect(x, y(Math.max(d.open, d.close)), candleWidth - 1, Math.abs(y(d.open) - y(d.close)) || 1);
-      });
-
-      // Draw EMA
+        // Draw EMA
       function drawLine(ema, color) {
         ctx.beginPath();
         ctx.strokeStyle = color;
+        ctx.lineWidth = parseFloat(document.getElementById("emaThickness").value);
         ema.forEach((val, i) => {
           const x = padding + i * candleWidth + candleWidth / 2;
           const yPos = y(val);
@@ -151,10 +148,11 @@
           else ctx.lineTo(x, yPos);
         });
         ctx.stroke();
+        ctx.lineWidth = 1;
       }
 
       drawLine(ema8, "#00ffff");  // EMA8 - turquoise
-      drawLine(ema13, "#ff00ff"); // EMA13 - pink
+      drawLine(ema13, "#ff00ff"); // EMA13 - pink // EMA13 - pink
     }
 
     async function render(symbol = "BTCUSDT") {
