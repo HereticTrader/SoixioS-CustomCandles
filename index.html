@@ -3,37 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>SOIXIOS Custom Chart v2.3</title>
+  <title>SOIXIOS Custom Chart v1.8</title>
   <style>
     body { background: black; color: white; font-family: monospace; padding: 2rem; }
     canvas { background: #111; border: 1px solid #444; display: block; margin: 1rem auto; }
     h1 { text-align: center; }
-    .news-container {
-      display: flex;
-      gap: 2rem;
-      margin-top: 3rem;
-      padding-top: 2rem;
-      border-top: 1px solid #333;
-    }
-    .news-box {
-      flex: 1;
-      max-height: 300px;
-      overflow-y: auto;
-    }
-    .news-title {
-      color: #00ffff;
-      font-size: 1.2rem;
-      margin-bottom: 0.5rem;
-    }
-    .news-list {
-      list-style: none;
-      padding-left: 0;
-      font-size: 0.9rem;
-    }
   </style>
 </head>
 <body>
-  <h1>📊 SOIXIOS Custom Chart <span style='font-size: 0.8rem; color: #888;'>v2.3</span></h1>
+  <h1>📊 SOIXIOS Custom Chart <span style='font-size: 0.8rem; color: #888;'>v1.8</span></h1>
   <div style="display: flex; justify-content: center; align-items: center; gap: 1rem; margin-bottom: 1rem;">
     <label for="symbol">Symbol:</label>
     <input type="text" id="symbol" value="BTCUSDT" style="width: 120px; text-align: center; font-weight: bold;">
@@ -46,150 +24,151 @@
     <span id="thicknessLabel">2</span> px
   </div>
   <div style="display: flex; justify-content: center; gap: 2rem; margin-bottom: 0.5rem;">
-    <div style="width: 400px; text-align: center; font-size: 0.9rem; color: yellow;">1 Minute</div>
-    <div style="width: 400px; text-align: center; font-size: 0.9rem; color: yellow;">5 Minutes</div>
-    <div style="width: 400px; text-align: center; font-size: 0.9rem; color: yellow;">15 Minutes</div>
+    <div style="width: 300px; text-align: center; font-size: 0.9rem; color: yellow;">1 Minute</div>
+    <div style="width: 300px; text-align: center; font-size: 0.9rem; color: yellow;">5 Minutes</div>
+    <div style="width: 300px; text-align: center; font-size: 0.9rem; color: yellow;">15 Minutes</div>
   </div>
   <div style="display: flex; justify-content: center; gap: 2rem; margin-bottom: 2rem;">
     <div style="text-align: center;">
-      <canvas id="chart1" width="450" height="420"></canvas>
+      <canvas id="chart1" width="400" height="400"></canvas>
       <div id="signal1" style="margin-top: 0.5rem; font-weight: bold;">...</div>
     </div>
     <div style="text-align: center;">
-      <canvas id="chart2" width="450" height="420"></canvas>
+      <canvas id="chart2" width="400" height="400"></canvas>
       <div id="signal2" style="margin-top: 0.5rem; font-weight: bold;">...</div>
     </div>
     <div style="text-align: center;">
-      <canvas id="chart3" width="450" height="420"></canvas>
+      <canvas id="chart3" width="400" height="400"></canvas>
       <div id="signal3" style="margin-top: 0.5rem; font-weight: bold;">...</div>
     </div>
   </div>
 
-  <div class="news-container">
-    <div class="news-box">
-      <h2 class="news-title">📰 Latest Bitcoin News</h2>
-      <ul id="news-feed" class="news-list">
-        <li>Loading news...</li>
-      </ul>
-    </div>
-    <div class="news-box">
-      <h2 class="news-title">🧵 Binance News</h2>
-      <ul id="binance-news-feed" class="news-list">
-        <li>Loading news...</li>
-      </ul>
-    </div>
-  </div>
-
   <script>
-    function drawChart(canvasId, data, emaWidth = 2) {
-      const ctx = document.getElementById(canvasId).getContext('2d');
-      ctx.clearRect(0, 0, 450, 420);
-      const w = 450, h = 420, pad = 30;
+    async function fetchKlines(symbol, interval, limit = 100) {
+      const endpoints = [
+        `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`,
+        `https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`
+      ];
 
-      const closes = data.map(d => parseFloat(d[4]));
-      const highs = data.map(d => parseFloat(d[2]));
-      const lows = data.map(d => parseFloat(d[3]));
-      const max = Math.max(...highs), min = Math.min(...lows);
-      const scaleY = val => h - pad - ((val - min) / (max - min)) * (h - pad * 2);
-      const scaleX = i => pad + i * ((w - pad * 2) / (data.length - 1));
-
-      const ema = (arr, len) => {
-        const k = 2 / (len + 1);
-        let ema = arr[0];
-        return arr.map((val, i) => i === 0 ? val : (ema = val * k + ema * (1 - k)));
-      };
-
-      const ema2 = ema(closes, 2);
-      const ema8 = ema(closes, 8);
-      const ema13 = ema(closes, 13);
-
-      for (let i = 1; i < data.length; i++) {
-        const x1 = scaleX(i - 1), x2 = scaleX(i);
-        const y1 = scaleY(closes[i - 1]);
-        const y2 = scaleY(closes[i]);
-
-        const color = ema2[i] > ema8[i] && ema8[i] > ema13[i] ? '#00ffff'
-                    : ema2[i] < ema8[i] && ema8[i] < ema13[i] ? '#ff00ff'
-                    : '#999999';
-
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(x1, y1);
-        ctx.lineTo(x2, y2);
-        ctx.stroke();
+      for (let url of endpoints) {
+        try {
+          const res = await fetch(url);
+          const raw = await res.json();
+          if (Array.isArray(raw)) {
+            return raw.map(c => ({
+              time: c[0], open: +c[1], high: +c[2], low: +c[3], close: +c[4]
+            }));
+          }
+        } catch (e) {
+          console.warn(`Failed to fetch from ${url}`, e);
+        }
       }
 
-      const drawEMA = (arr, color) => {
-        ctx.strokeStyle = color;
-        ctx.lineWidth = emaWidth;
-        ctx.beginPath();
-        arr.forEach((val, i) => {
-          const x = scaleX(i), y = scaleY(val);
-          if (i === 0) ctx.moveTo(x, y);
-          else ctx.lineTo(x, y);
-        });
-        ctx.stroke();
-      };
-
-      drawEMA(ema2, '#ffff00');
-      drawEMA(ema8, '#00ffff');
-      drawEMA(ema13, '#ff00ff');
-
-      ctx.fillStyle = 'yellow';
-      ctx.font = 'bold 14px monospace';
-      ctx.fillText(closes[closes.length - 1].toFixed(4), scaleX(data.length - 1) - 30, scaleY(closes[closes.length - 1]) - 6);
-      ctx.fillText('H: ' + max.toFixed(4), 10, 12);
-      ctx.fillText('L: ' + min.toFixed(4), 10, h - 8);
+      return [];
     }
 
-    async function fetchChartData(symbol, interval, canvasId, signalId) {
-      try {
-        const res = await fetch(`https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=${interval}&limit=100`);
-        const data = await res.json();
-        const closes = data.map(d => parseFloat(d[4]));
-        const ema = (arr, len) => {
-          const k = 2 / (len + 1);
-          let ema = arr[0];
-          return arr.map((val, i) => i === 0 ? val : (ema = val * k + ema * (1 - k)));
-        };
-        const ema2 = ema(closes, 2);
-        const ema8 = ema(closes, 8);
-        const ema13 = ema(closes, 13);
+    function calculateEMA(data, length) {
+      const k = 2 / (length + 1);
+      let ema = data[0].close;
+      return data.map((d, i) => {
+        if (i === 0) return ema;
+        ema = d.close * k + ema * (1 - k);
+        return ema;
+      });
+    }
 
-        let signal = 'EMA NONE';
-        if (ema2.at(-1) > ema8.at(-1) && ema8.at(-1) > ema13.at(-1)) signal = 'EMA LONG';
-        if (ema2.at(-1) < ema8.at(-1) && ema8.at(-1) < ema13.at(-1)) signal = 'EMA SHORT';
-        document.getElementById(signalId).innerText = signal;
-        document.getElementById(signalId).style.color = signal.includes('LONG') ? '#00ffff' : signal.includes('SHORT') ? '#ff00ff' : 'gray';
+    function drawChart(canvasId, signalId, data, ema8, ema13) {
+      const canvas = document.getElementById(canvasId);
+      const ctx = canvas.getContext("2d");
+      const padding = 20;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        const width = parseInt(document.getElementById('emaThickness').value);
-        drawChart(canvasId, data, width);
-      } catch (e) {
-        console.error("Chart fetch failed", e);
-        document.getElementById(signalId).innerText = '...';
+      const w = canvas.width - 2 * padding;
+      const h = canvas.height - 2 * padding;
+      const candleWidth = w / data.length;
+      const highs = data.map(d => d.high);
+      const lows = data.map(d => d.low);
+      const max = Math.max(...highs);
+      const min = Math.min(...lows);
+
+      function y(price) {
+        return padding + h - ((price - min) / (max - min)) * h;
+      }
+
+      const ema2 = calculateEMA(data, 2);
+
+      let condition = "EMA NONE";
+      if (ema2.at(-1) > ema8.at(-1) && ema8.at(-1) > ema13.at(-1)) {
+        condition = "EMA LONG";
+        document.getElementById(signalId).style.color = "#00ffff";
+      } else if (ema2.at(-1) < ema8.at(-1) && ema8.at(-1) < ema13.at(-1)) {
+        condition = "EMA SHORT";
+        document.getElementById(signalId).style.color = "#ff00ff";
+      } else {
+        document.getElementById(signalId).style.color = "gray";
+      }
+      document.getElementById(signalId).textContent = condition;
+
+      data.forEach((d, i) => {
+        const x = padding + i * candleWidth;
+        let color = "gray";
+        if (ema2[i] > ema8[i] && ema8[i] > ema13[i]) color = "#00ffff";
+        else if (ema2[i] < ema8[i] && ema8[i] < ema13[i]) color = "#ff00ff";
+
+        ctx.strokeStyle = color;
+        ctx.beginPath();
+        ctx.moveTo(x + candleWidth / 2, y(d.high));
+        ctx.lineTo(x + candleWidth / 2, y(d.low));
+        ctx.stroke();
+        ctx.fillStyle = color;
+        ctx.fillRect(x, y(Math.max(d.open, d.close)), candleWidth - 1, Math.abs(y(d.open) - y(d.close)) || 1);
+      });
+
+      function drawLine(ema, color) {
+        ctx.beginPath();
+        ctx.strokeStyle = color;
+        ctx.lineWidth = parseFloat(document.getElementById("emaThickness").value);
+        ema.forEach((val, i) => {
+          const x = padding + i * candleWidth + candleWidth / 2;
+          const yPos = y(val);
+          if (i === 0) ctx.moveTo(x, yPos);
+          else ctx.lineTo(x, yPos);
+        });
+        ctx.stroke();
+        ctx.lineWidth = 1;
+      }
+
+      drawLine(ema8, "#00ffff");
+      drawLine(ema13, "#ff00ff");
+
+      const lastPrice = data.at(-1).close;
+      ctx.fillStyle = "white";
+      ctx.font = "bold 12px monospace";
+      ctx.fillText(lastPrice.toFixed(4), canvas.width - padding - 60, y(lastPrice) - 6);
+    }
+
+    async function render(symbol = "BTCUSDT") {
+      const intervals = ["1m", "5m", "15m"];
+      for (let i = 0; i < intervals.length; i++) {
+        const data = await fetchKlines(symbol, intervals[i]);
+        const ema8 = calculateEMA(data, 8);
+        const ema13 = calculateEMA(data, 13);
+        drawChart(`chart${i + 1}`, `signal${i + 1}`, data, ema8, ema13);
       }
     }
 
     function applySettings() {
       const symbol = document.getElementById("symbol").value.toUpperCase();
-      document.getElementById("chartLabel").innerText = `Loading ${symbol} 1m Chart...`;
-      fetchChartData(symbol, '1m', 'chart1', 'signal1');
-      fetchChartData(symbol, '5m', 'chart2', 'signal2');
-      fetchChartData(symbol, '15m', 'chart3', 'signal3');
+      document.getElementById("chartLabel").textContent = `Loading ${symbol} 1m Chart...`;
+      render(symbol);
     }
 
-    document.getElementById("emaThickness").addEventListener("input", e => {
-      document.getElementById("thicknessLabel").innerText = e.target.value;
-      applySettings();
+    document.getElementById("emaThickness").addEventListener("input", () => {
+      document.getElementById("thicknessLabel").textContent = document.getElementById("emaThickness").value;
     });
 
-    fetchBinanceNews();
-    fetchBitcoinNews();
-    setInterval(fetchBinanceNews, 120000);
-    setInterval(fetchBitcoinNews, 120000);
-    setInterval(applySettings, 5000);
     applySettings();
+    setInterval(() => applySettings(), 5000);
   </script>
 </body>
 </html>
