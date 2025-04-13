@@ -173,8 +173,30 @@
     });
 
     applySettings();
-    setInterval(() => applySettings(), 5000);
-  </script>
+    setInterval(() => {
+  applySettings();
+  SoixiosAgent.observe();
+}, 5000);
+  // AI AGENT — Monitors signal1 for 3x streak and alerts
+const SoixiosAgent = {
+  memory: { lastSignal: '', count: 0 },
+  observe() {
+    const el = document.getElementById('signal1');
+    if (!el) return;
+    const current = el.textContent.trim();
+    if (current === this.memory.lastSignal) {
+      this.memory.count++;
+    } else {
+      this.memory.lastSignal = current;
+      this.memory.count = 1;
+    }
+    if (this.memory.count === 3 && (current.includes('LONG') || current.includes('SHORT'))) {
+      alert(`🧠 Soixios AI Agent Alert:
+${current} has persisted 3 refreshes.`);
+    }
+  }
+};
+</script>
   <div style="margin-top: 3rem; padding: 1rem; border-top: 1px solid #333; max-height: 300px; overflow-y: auto;">
     <h2 style="color: #00ffff; font-size: 1.2rem;">📰 Latest Bitcoin News</h2>
     <ul id="news-feed" style="list-style: none; padding-left: 0; font-size: 0.9rem;">
