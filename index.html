@@ -1,250 +1,581 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>SOIXIOS Custom Chart v1.9</title>
-  <style>
-    body { background: black; color: white; font-family: monospace; padding: 2rem; }
-    canvas { background: #111; border: 1px solid #444; display: block; margin: 1rem auto; }
-    h1 { text-align: center; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🤖 BOT HUNTER RADAR 🎯</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
+            color: #00ff41;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .radar-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            padding: 10px;
+            gap: 15px;
+        }
+
+        .chart-section {
+            flex: 0 0 50%;
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid #00ff41;
+            border-radius: 15px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: 0 0 30px rgba(0, 255, 65, 0.3);
+        }
+
+        .chart-header {
+            background: linear-gradient(90deg, #ff0040, #ff4000, #ffaa00);
+            padding: 10px 20px;
+            font-size: 24px;
+            font-weight: bold;
+            text-align: center;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+
+        #tradingview-widget {
+            width: 100%;
+            height: calc(100% - 60px);
+        }
+
+        .detection-panel {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 15px;
+        }
+
+        .bot-detector {
+            background: rgba(0, 0, 0, 0.9);
+            border: 2px solid;
+            border-radius: 15px;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .fake-dump { border-color: #ff0040; }
+        .lightning-wick { border-color: #ff8800; }
+        .volume-cliff { border-color: #8844ff; }
+
+        .detector-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .threat-level {
+            font-size: 48px;
+            font-weight: bold;
+            text-align: center;
+            margin: 20px 0;
+            text-shadow: 0 0 20px currentColor;
+        }
+
+        .metrics {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            transition: all 0.5s ease;
+            border-radius: 4px;
+        }
+
+        .alert-high { 
+            background: #ff0040; 
+            animation: alertPulse 1s infinite;
+        }
+        .alert-medium { background: #ff8800; }
+        .alert-low { background: #00ff41; }
+
+        @keyframes alertPulse {
+            0%, 100% { opacity: 1; box-shadow: 0 0 20px #ff0040; }
+            50% { opacity: 0.6; box-shadow: 0 0 40px #ff0040; }
+        }
+
+        .master-alert {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 0, 64, 0.95);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            font-size: 24px;
+            font-weight: bold;
+            text-align: center;
+            box-shadow: 0 0 40px rgba(255, 0, 64, 0.8);
+            animation: masterAlert 2s infinite;
+            display: none;
+            z-index: 1000;
+        }
+
+        @keyframes masterAlert {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .geometry-viz {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            width: 80px;
+            height: 60px;
+            border: 1px solid currentColor;
+            opacity: 0.6;
+        }
+
+        .candle-shape {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+
+        .wick {
+            position: absolute;
+            left: 50%;
+            width: 2px;
+            background: currentColor;
+            transform: translateX(-50%);
+        }
+
+        .body {
+            position: absolute;
+            left: 25%;
+            width: 50%;
+            background: currentColor;
+            opacity: 0.8;
+        }
+
+        .status-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 2px solid #00ff41;
+            font-size: 14px;
+        }
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #00ff41;
+            animation: statusBlink 2s infinite;
+        }
+
+        @keyframes statusBlink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0.3; }
+        }
+
+        .symbol-selector {
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid #00ff41;
+            color: #00ff41;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-family: inherit;
+        }
+    </style>
 </head>
 <body>
-  <h1>📊 SOIXIOS Custom Chart <span style='font-size: 0.8rem; color: #888;'>v1.9</span></h1>
-  <div style="display: flex; justify-content: center; align-items: center; gap: 1rem; margin-bottom: 1rem;">
-    <label for="symbol">Symbol:</label>
-    <input type="text" id="symbol" value="BTCUSDT" style="width: 120px; text-align: center; font-weight: bold;">
-    <button onclick="applySettings()">Load</button>
-  </div>
-  <h2 id="chartLabel" style="text-align: center; color: yellow; margin-top: 1rem;">Loading BTCUSDT 1m Chart...</h2>
-  <div style="text-align:center; margin-bottom: 1rem;">
-    <label for="emaThickness">EMA Line Width:</label>
-    <input type="range" id="emaThickness" min="1" max="5" value="2">
-    <span id="thicknessLabel">2</span> px
-  </div>
-  <div style="display: flex; justify-content: center; gap: 2rem; margin-bottom: 0.5rem;">
-    <div style="width: 400px; text-align: center; font-size: 0.9rem; color: yellow;">1 Minute</div>
-    <div style="width: 400px; text-align: center; font-size: 0.9rem; color: yellow;">5 Minutes</div>
-    <div style="width: 400px; text-align: center; font-size: 0.9rem; color: yellow;">15 Minutes</div>
-  </div>
-  <div style="display: flex; justify-content: center; gap: 2rem; margin-bottom: 2rem;">
-    <div style="text-align: center;">
-      <canvas id="chart1" width="450" height="420"></canvas>
-      <div id="signal1" style="margin-top: 0.5rem; font-weight: bold;">...</div>
-    </div>
-    <div style="text-align: center;">
-      <canvas id="chart2" width="450" height="420"></canvas>
-      <div id="signal2" style="margin-top: 0.5rem; font-weight: bold;">...</div>
-    </div>
-    <div style="text-align: center;">
-      <canvas id="chart3" width="450" height="420"></canvas>
-      <div id="signal3" style="margin-top: 0.5rem; font-weight: bold;">...</div>
-    </div>
-  </div>
+    <div class="radar-container">
+        <!-- Chart Section -->
+        <div class="chart-section">
+            <div class="chart-header">
+                🎯 LIVE MARKET SCAN: <span id="current-symbol">BTCUSDT</span> | 1M
+            </div>
+            <div id="tradingview-widget"></div>
+        </div>
 
-  <script>
-    async function fetchKlines(symbol, interval, limit = 100) {
-      const endpoints = [
-        `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`,
-        `https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`
-      ];
+        <!-- Detection Panel -->
+        <div class="detection-panel">
+            <!-- Fake Dump Detector -->
+            <div class="bot-detector fake-dump">
+                <div class="detector-title" style="color: #ff0040;">
+                    🔻 FAKE DUMP HUNTER
+                </div>
+                <div class="threat-level" style="color: #ff0040;" id="fake-dump-level">
+                    0%
+                </div>
+                <div class="metrics">
+                    <div class="metric">
+                        <span>Tail Ratio:</span>
+                        <span id="tail-ratio">0%</span>
+                    </div>
+                    <div class="metric">
+                        <span>Volume Spike:</span>
+                        <span id="volume-spike">1.0x</span>
+                    </div>
+                    <div class="metric">
+                        <span>Midpoint:</span>
+                        <span id="midpoint-level">N/A</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="fake-dump-progress"></div>
+                    </div>
+                </div>
+                <div class="geometry-viz">
+                    <div class="candle-shape">
+                        <div class="wick" id="fake-wick" style="top: 0; height: 70%;"></div>
+                        <div class="body" id="fake-body" style="top: 60%; height: 10%;"></div>
+                    </div>
+                </div>
+            </div>
 
-      for (let url of endpoints) {
-        try {
-          const res = await fetch(url);
-          const raw = await res.json();
-          if (Array.isArray(raw)) {
-            return raw.map(c => ({
-              time: c[0], open: +c[1], high: +c[2], low: +c[3], close: +c[4]
-            }));
-          }
-        } catch (e) {
-          console.warn(`Failed to fetch from ${url}`, e);
+            <!-- Lightning Wick Detector -->
+            <div class="bot-detector lightning-wick">
+                <div class="detector-title" style="color: #ff8800;">
+                    ⚡ LIGHTNING VELOCITY
+                </div>
+                <div class="threat-level" style="color: #ff8800;" id="lightning-level">
+                    0%
+                </div>
+                <div class="metrics">
+                    <div class="metric">
+                        <span>Velocity:</span>
+                        <span id="wick-velocity">0.0</span>
+                    </div>
+                    <div class="metric">
+                        <span>Recovery:</span>
+                        <span id="recovery-speed">0%</span>
+                    </div>
+                    <div class="metric">
+                        <span>Angle:</span>
+                        <span id="dump-angle">0°</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="lightning-progress"></div>
+                    </div>
+                </div>
+                <div class="geometry-viz">
+                    <div class="candle-shape">
+                        <div class="wick" id="lightning-wick-viz" style="top: 20%; height: 60%;"></div>
+                        <div class="body" id="lightning-body" style="top: 70%; height: 15%;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Volume Cliff Detector -->
+            <div class="bot-detector volume-cliff">
+                <div class="detector-title" style="color: #8844ff;">
+                    📊 VOLUME CLIFF
+                </div>
+                <div class="threat-level" style="color: #8844ff;" id="volume-level">
+                    0%
+                </div>
+                <div class="metrics">
+                    <div class="metric">
+                        <span>Volume Ratio:</span>
+                        <span id="current-volume">1.0x</span>
+                    </div>
+                    <div class="metric">
+                        <span>Cliff Drop:</span>
+                        <span id="cliff-drop">0%</span>
+                    </div>
+                    <div class="metric">
+                        <span>Manipulation:</span>
+                        <span id="manipulation-score">LOW</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="volume-progress"></div>
+                    </div>
+                </div>
+                <div class="geometry-viz" style="border-color: #8844ff;">
+                    <div style="position: relative; width: 100%; height: 100%;">
+                        <div id="volume-bar" style="position: absolute; bottom: 0; left: 10%; width: 20%; background: #8844ff; height: 80%;"></div>
+                        <div id="cliff-bar" style="position: absolute; bottom: 0; left: 40%; width: 20%; background: #8844ff; height: 30%;"></div>
+                        <div id="current-bar" style="position: absolute; bottom: 0; left: 70%; width: 20%; background: #8844ff; height: 50%;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Master Alert -->
+    <div class="master-alert" id="master-alert">
+        🚨 HIGH BOT ACTIVITY DETECTED! 🚨
+    </div>
+
+    <!-- Status Bar -->
+    <div class="status-bar">
+        <div class="connection-status">
+            <div class="status-dot"></div>
+            <span>LIVE FEED ACTIVE</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <span>Symbol:</span>
+            <select class="symbol-selector" id="symbol-select">
+                <option value="BTCUSDT">BTCUSDT</option>
+                <option value="ETHUSDT">ETHUSDT</option>
+                <option value="ADAUSDT">ADAUSDT</option>
+                <option value="SOLUSDT">SOLUSDT</option>
+                <option value="FUNUSDT">FUNUSDT</option>
+                <option value="custom">Custom...</option>
+            </select>
+            <input type="text" 
+                   id="custom-symbol" 
+                   class="symbol-selector" 
+                   placeholder="Enter symbol (e.g. FUNUSDT)" 
+                   style="display: none; width: 180px;"
+                   maxlength="20">
+            <button id="apply-symbol" 
+                    class="symbol-selector" 
+                    style="display: none; background: #00ff41; color: black; border: none; cursor: pointer; padding: 6px 12px;">
+                Apply
+            </button>
+        </div>
+        <div id="last-update">Last Update: --:--:--</div>
+    </div>
+
+    <script>
+        // Initialize TradingView Widget
+        function initTradingViewWidget(symbol = 'BTCUSDT') {
+            const widgetConfig = {
+                "width": "100%",
+                "height": "100%",
+                "symbol": `BINANCE:${symbol}`,
+                "interval": "1",
+                "timezone": "Etc/UTC",
+                "theme": "dark",
+                "style": "1",
+                "locale": "en",
+                "toolbar_bg": "#000000",
+                "enable_publishing": false,
+                "hide_top_toolbar": false,
+                "hide_legend": true,
+                "save_image": false,
+                "container_id": "tradingview-widget"
+            };
+
+            // Clear existing widget
+            document.getElementById('tradingview-widget').innerHTML = '';
+            
+            // Create new widget script
+            const script = document.createElement('script');
+            script.type = 'text/javascript';
+            script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
+            script.async = true;
+            script.innerHTML = JSON.stringify(widgetConfig);
+            
+            document.getElementById('tradingview-widget').appendChild(script);
         }
-      }
 
-      return [];
-    }
+        // Simulated real-time data (replace with actual WebSocket)
+        let botDetectionData = {
+            fakeDump: { level: 0, tailRatio: 0, volumeSpike: 1.0, midpoint: null },
+            lightning: { level: 0, velocity: 0, recovery: 0, angle: 0 },
+            volumeCliff: { level: 0, volumeRatio: 1.0, cliffDrop: 0, manipulation: 'LOW' }
+        };
 
-    function calculateEMA(data, length) {
-      const k = 2 / (length + 1);
-      let ema = data[0].close;
-      return data.map((d, i) => {
-        if (i === 0) return ema;
-        ema = d.close * k + ema * (1 - k);
-        return ema;
-      });
-    }
+        function updateDetectionDisplay() {
+            // Update Fake Dump
+            const fakeDumpLevel = botDetectionData.fakeDump.level;
+            document.getElementById('fake-dump-level').textContent = `${fakeDumpLevel}%`;
+            document.getElementById('tail-ratio').textContent = `${botDetectionData.fakeDump.tailRatio}%`;
+            document.getElementById('volume-spike').textContent = `${botDetectionData.fakeDump.volumeSpike.toFixed(1)}x`;
+            document.getElementById('midpoint-level').textContent = botDetectionData.fakeDump.midpoint || 'N/A';
+            
+            const fakeDumpProgress = document.getElementById('fake-dump-progress');
+            fakeDumpProgress.style.width = `${fakeDumpLevel}%`;
+            fakeDumpProgress.className = `progress-fill ${fakeDumpLevel > 70 ? 'alert-high' : fakeDumpLevel > 40 ? 'alert-medium' : 'alert-low'}`;
 
-    function drawChart(canvasId, signalId, data, ema8, ema13) {
-      const canvas = document.getElementById(canvasId);
-      const ctx = canvas.getContext("2d");
-      const padding = 40;
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+            // Update Lightning
+            const lightningLevel = botDetectionData.lightning.level;
+            document.getElementById('lightning-level').textContent = `${lightningLevel}%`;
+            document.getElementById('wick-velocity').textContent = botDetectionData.lightning.velocity.toFixed(1);
+            document.getElementById('recovery-speed').textContent = `${botDetectionData.lightning.recovery}%`;
+            document.getElementById('dump-angle').textContent = `${botDetectionData.lightning.angle}°`;
+            
+            const lightningProgress = document.getElementById('lightning-progress');
+            lightningProgress.style.width = `${lightningLevel}%`;
+            lightningProgress.className = `progress-fill ${lightningLevel > 70 ? 'alert-high' : lightningLevel > 40 ? 'alert-medium' : 'alert-low'}`;
 
-      const w = canvas.width - 2 * padding;
-      const h = canvas.height - 2 * padding;
-      const candleWidth = w / data.length;
-      const highs = data.map(d => d.high);
-      const lows = data.map(d => d.low);
-      const max = Math.max(...highs);
-      const min = Math.min(...lows);
+            // Update Volume Cliff
+            const volumeLevel = botDetectionData.volumeCliff.level;
+            document.getElementById('volume-level').textContent = `${volumeLevel}%`;
+            document.getElementById('current-volume').textContent = `${botDetectionData.volumeCliff.volumeRatio.toFixed(1)}x`;
+            document.getElementById('cliff-drop').textContent = `${botDetectionData.volumeCliff.cliffDrop}%`;
+            document.getElementById('manipulation-score').textContent = botDetectionData.volumeCliff.manipulation;
+            
+            const volumeProgress = document.getElementById('volume-progress');
+            volumeProgress.style.width = `${volumeLevel}%`;
+            volumeProgress.className = `progress-fill ${volumeLevel > 70 ? 'alert-high' : volumeLevel > 40 ? 'alert-medium' : 'alert-low'}`;
 
-      function y(price) {
-        return padding + h - ((price - min) / (max - min)) * h;
-      }
+            // Master Alert
+            const totalThreat = (fakeDumpLevel + lightningLevel + volumeLevel) / 3;
+            if (totalThreat > 70) {
+                document.getElementById('master-alert').style.display = 'block';
+            } else {
+                document.getElementById('master-alert').style.display = 'none';
+            }
 
-      const ema2 = calculateEMA(data, 2);
+            // Update timestamp
+            document.getElementById('last-update').textContent = `Last Update: ${new Date().toLocaleTimeString()}`;
+        }
 
-      let condition = "EMA NONE";
-      if (ema2.at(-1) > ema8.at(-1) && ema8.at(-1) > ema13.at(-1)) {
-        condition = "EMA LONG";
-        document.getElementById(signalId).style.color = "#00ffff";
-      } else if (ema2.at(-1) < ema8.at(-1) && ema8.at(-1) < ema13.at(-1)) {
-        condition = "EMA SHORT";
-        document.getElementById(signalId).style.color = "#ff00ff";
-      } else {
-        document.getElementById(signalId).style.color = "gray";
-      }
-      document.getElementById(signalId).textContent = condition;
+        // Simulate real-time data updates
+        function simulateData() {
+            // Random bot activity simulation
+            if (Math.random() < 0.1) { // 10% chance of bot activity
+                botDetectionData.fakeDump.level = Math.floor(Math.random() * 100);
+                botDetectionData.fakeDump.tailRatio = Math.floor(Math.random() * 80) + 20;
+                botDetectionData.fakeDump.volumeSpike = (Math.random() * 5) + 1;
+                botDetectionData.fakeDump.midpoint = (Math.random() * 10000 + 40000).toFixed(2);
+            } else {
+                botDetectionData.fakeDump.level = Math.max(0, botDetectionData.fakeDump.level - 5);
+            }
 
-      data.forEach((d, i) => {
-        const x = padding + i * candleWidth;
-        let color = "gray";
-        if (ema2[i] > ema8[i] && ema8[i] > ema13[i]) color = "#00ffff";
-        else if (ema2[i] < ema8[i] && ema8[i] < ema13[i]) color = "#ff00ff";
+            if (Math.random() < 0.08) {
+                botDetectionData.lightning.level = Math.floor(Math.random() * 100);
+                botDetectionData.lightning.velocity = Math.random() * 10;
+                botDetectionData.lightning.recovery = Math.floor(Math.random() * 100);
+                botDetectionData.lightning.angle = Math.floor(Math.random() * 90);
+            } else {
+                botDetectionData.lightning.level = Math.max(0, botDetectionData.lightning.level - 3);
+            }
 
-        ctx.strokeStyle = color;
-        ctx.beginPath();
-        ctx.moveTo(x + candleWidth / 2, y(d.high));
-        ctx.lineTo(x + candleWidth / 2, y(d.low));
-        ctx.stroke();
-        ctx.fillStyle = color;
-        ctx.fillRect(x, y(Math.max(d.open, d.close)), candleWidth - 1, Math.abs(y(d.open) - y(d.close)) || 1);
-      });
+            if (Math.random() < 0.12) {
+                botDetectionData.volumeCliff.level = Math.floor(Math.random() * 100);
+                botDetectionData.volumeCliff.volumeRatio = (Math.random() * 8) + 1;
+                botDetectionData.volumeCliff.cliffDrop = Math.floor(Math.random() * 80) + 20;
+                const manipulationLevels = ['LOW', 'MODERATE', 'HIGH', 'EXTREME'];
+                botDetectionData.volumeCliff.manipulation = manipulationLevels[Math.floor(Math.random() * 4)];
+            } else {
+                botDetectionData.volumeCliff.level = Math.max(0, botDetectionData.volumeCliff.level - 4);
+            }
 
-      function drawLine(ema, color) {
-        ctx.beginPath();
-        ctx.strokeStyle = color;
-        ctx.lineWidth = parseFloat(document.getElementById("emaThickness").value);
-        ema.forEach((val, i) => {
-          const x = padding + i * candleWidth + candleWidth / 2;
-          const yPos = y(val);
-          if (i === 0) ctx.moveTo(x, yPos);
-          else ctx.lineTo(x, yPos);
+            updateDetectionDisplay();
+        }
+
+        // Symbol change handler
+        document.getElementById('symbol-select').addEventListener('change', function(e) {
+            const selectValue = e.target.value;
+            const customInput = document.getElementById('custom-symbol');
+            const applyButton = document.getElementById('apply-symbol');
+            
+            if (selectValue === 'custom') {
+                customInput.style.display = 'inline-block';
+                applyButton.style.display = 'inline-block';
+                customInput.focus();
+            } else {
+                customInput.style.display = 'none';
+                applyButton.style.display = 'none';
+                document.getElementById('current-symbol').textContent = selectValue;
+                initTradingViewWidget(selectValue);
+            }
         });
-        ctx.stroke();
-        ctx.lineWidth = 1;
-      }
 
-      drawLine(ema8, "#00ffff");
-      drawLine(ema13, "#ff00ff");
+        // Custom symbol apply handler
+        document.getElementById('apply-symbol').addEventListener('click', function() {
+            const customSymbol = document.getElementById('custom-symbol').value.toUpperCase().trim();
+            if (customSymbol) {
+                // Validate format (should end with USDT)
+                if (!customSymbol.endsWith('USDT')) {
+                    alert('Please enter a valid USDT pair (e.g., FUNUSDT)');
+                    return;
+                }
+                
+                document.getElementById('current-symbol').textContent = customSymbol;
+                initTradingViewWidget(customSymbol);
+                
+                // Add to dropdown if not exists
+                const select = document.getElementById('symbol-select');
+                let exists = false;
+                for (let option of select.options) {
+                    if (option.value === customSymbol) {
+                        exists = true;
+                        option.selected = true;
+                        break;
+                    }
+                }
+                
+                if (!exists) {
+                    const newOption = document.createElement('option');
+                    newOption.value = customSymbol;
+                    newOption.textContent = customSymbol;
+                    newOption.selected = true;
+                    select.insertBefore(newOption, select.querySelector('option[value="custom"]'));
+                }
+                
+                // Hide custom input
+                document.getElementById('custom-symbol').style.display = 'none';
+                document.getElementById('apply-symbol').style.display = 'none';
+            }
+        });
 
-      const lastPrice = data.at(-1).close;
-      ctx.fillStyle = "yellow";
-      ctx.font = "bold 12px monospace";
-      ctx.fillText(lastPrice.toFixed(4), canvas.width - padding - 60, y(lastPrice));
+        // Enter key handler for custom input
+        document.getElementById('custom-symbol').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                document.getElementById('apply-symbol').click();
+            }
+        });
 
-      ctx.fillStyle = "#888";
-      ctx.fillText("H: " + Math.max(...highs).toFixed(4), 10, 20);
-      ctx.fillText("L: " + Math.min(...lows).toFixed(4), 10, canvas.height - 10);
-    }
-
-    async function render(symbol = "BTCUSDT") {
-      const intervals = ["1m", "5m", "15m"];
-      for (let i = 0; i < intervals.length; i++) {
-        const data = await fetchKlines(symbol, intervals[i]);
-        const ema8 = calculateEMA(data, 8);
-        const ema13 = calculateEMA(data, 13);
-        drawChart(`chart${i + 1}`, `signal${i + 1}`, data, ema8, ema13);
-      }
-    }
-
-    function applySettings() {
-      const symbol = document.getElementById("symbol").value.toUpperCase();
-      document.getElementById("chartLabel").textContent = `Loading ${symbol} 1m Chart...`;
-      render(symbol);
-    }
-
-    document.getElementById("emaThickness").addEventListener("input", () => {
-      document.getElementById("thicknessLabel").textContent = document.getElementById("emaThickness").value;
-    });
-
-    applySettings();
-    setInterval(() => {
-  applySettings();
-  SoixiosAgent.observe();
-}, 5000);
-  // AI AGENT — Monitors signal1 for 3x streak and alerts
-const SoixiosAgent = {
-  memory: { lastSignal: '', count: 0 },
-  observe() {
-    const el = document.getElementById('signal1');
-    if (!el) return;
-    const current = el.textContent.trim();
-    if (current === this.memory.lastSignal) {
-      this.memory.count++;
-    } else {
-      this.memory.lastSignal = current;
-      this.memory.count = 1;
-    }
-    if (this.memory.count === 3 && (current.includes('LONG') || current.includes('SHORT'))) {
-      alert(`🧠 Soixios AI Agent Alert:
-${current} has persisted 3 refreshes.`);
-    }
-  }
-};
-</script>
-  <div style="margin-top: 3rem; padding: 1rem; border-top: 1px solid #333; max-height: 300px; overflow-y: auto;">
-    <h2 style="color: #00ffff; font-size: 1.2rem;">📰 Latest Bitcoin News</h2>
-    <ul id="news-feed" style="list-style: none; padding-left: 0; font-size: 0.9rem;">
-      <li>Loading news...</li>
-    </ul>
-  </div>
-
-  <script>
-    async function fetchNews() {
-      const rssUrls = [
-        'https://www.coindesk.com/arc/outboundfeeds/rss/',
-        'https://cointelegraph.com/rss'
-      ];
-
-      const parser = new DOMParser();
-      const allItems = [];
-
-      for (let url of rssUrls) {
-        try {
-          const res = await fetch('https://api.allorigins.win/get?url=' + encodeURIComponent(url));
-          const json = await res.json();
-          const doc = parser.parseFromString(json.contents, "text/xml");
-          const items = doc.querySelectorAll("item");
-
-          items.forEach(item => {
-            allItems.push({
-              title: item.querySelector("title")?.textContent,
-              link: item.querySelector("link")?.textContent
-            });
-          });
-        } catch (e) {
-          console.error('Failed to fetch news from', url);
-        }
-      }
-
-      allItems.sort(() => Math.random() - 0.5);
-
-      const newsList = document.getElementById("news-feed");
-      newsList.innerHTML = "";
-      allItems.slice(0, 10).forEach(item => {
-        const li = document.createElement("li");
-        li.innerHTML = `<a href="${item.link}" target="_blank" style="color: #ccc; text-decoration: none;">🔗 ${item.title}</a>`;
-        newsList.appendChild(li);
-      });
-    }
-
-    fetchNews();
-    setInterval(fetchNews, 120000);
-  </script>
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            initTradingViewWidget();
+            updateDetectionDisplay();
+            
+            // Update every 2 seconds
+            setInterval(simulateData, 2000);
+        });
+    </script>
 </body>
 </html>
