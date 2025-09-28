@@ -3,579 +3,1113 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🤖 BOT HUNTER RADAR 🎯</title>
+    <title>Smart Trading Bot</title>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-
+        
         body {
-            font-family: 'Courier New', monospace;
-            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
-            color: #00ff41;
-            overflow: hidden;
-            height: 100vh;
-        }
-
-        .radar-container {
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-            padding: 10px;
-            gap: 15px;
-        }
-
-        .chart-section {
-            flex: 0 0 50%;
-            background: rgba(0, 0, 0, 0.8);
-            border: 2px solid #00ff41;
-            border-radius: 15px;
-            overflow: hidden;
-            position: relative;
-            box-shadow: 0 0 30px rgba(0, 255, 65, 0.3);
-        }
-
-        .chart-header {
-            background: linear-gradient(90deg, #ff0040, #ff4000, #ffaa00);
-            padding: 10px 20px;
-            font-size: 24px;
-            font-weight: bold;
-            text-align: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
             color: white;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
-            animation: pulse 2s infinite;
+            min-height: 100vh;
         }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.8; }
-        }
-
-        #tradingview-widget {
-            width: 100%;
-            height: calc(100% - 60px);
-        }
-
-        .detection-panel {
-            flex: 1;
+        
+        .container {
             display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 15px;
+            grid-template-columns: 1fr 300px;
+            grid-template-rows: auto 1fr;
+            height: 100vh;
+            gap: 20px;
+            padding: 20px;
         }
-
-        .bot-detector {
-            background: rgba(0, 0, 0, 0.9);
-            border: 2px solid;
+        
+        .header {
+            grid-column: 1 / -1;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
             border-radius: 15px;
             padding: 20px;
-            position: relative;
-            overflow: hidden;
-            transition: all 0.3s ease;
-        }
-
-        .fake-dump { border-color: #ff0040; }
-        .lightning-wick { border-color: #ff8800; }
-        .volume-cliff { border-color: #8844ff; }
-
-        .detector-title {
-            font-size: 18px;
-            font-weight: bold;
-            margin-bottom: 15px;
             text-align: center;
-            text-transform: uppercase;
-            letter-spacing: 2px;
         }
-
-        .threat-level {
-            font-size: 48px;
+        
+        .main-panel {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            overflow: hidden;
+        }
+        
+        .control-panel {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        
+        .status-card {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-left: 4px solid #00ff88;
+        }
+        
+        .status-card.warning {
+            border-left-color: #ffaa00;
+            animation: pulse 1s infinite;
+        }
+        
+        .status-card.danger {
+            border-left-color: #ff4444;
+            animation: pulse 0.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        .price-display {
+            font-size: 2.5em;
             font-weight: bold;
             text-align: center;
             margin: 20px 0;
-            text-shadow: 0 0 20px currentColor;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
         }
-
-        .metrics {
+        
+        .price-change {
+            font-size: 0.8em;
+            margin-left: 10px;
+        }
+        
+        .price-change.positive {
+            color: #00ff88;
+        }
+        
+        .price-change.negative {
+            color: #ff4444;
+        }
+        
+        .signal-indicator {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .signal-indicator.long {
+            border-left: 4px solid #00ff88;
+        }
+        
+        .signal-indicator.short {
+            border-left: 4px solid #ff4444;
+        }
+        
+        /* EMA Game Bars Styling */
+        .ema-game-container {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        .ema-bars-container {
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            gap: 30px;
+            margin: 20px 0;
+            height: 300px;
+        }
+        
+        .ema-bar-wrapper {
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            align-items: center;
         }
-
-        .metric {
-            display: flex;
-            justify-content: space-between;
-            padding: 8px 12px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 8px;
-            font-size: 14px;
-        }
-
-        .progress-bar {
-            width: 100%;
-            height: 8px;
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 4px;
-            overflow: hidden;
-            margin-top: 5px;
-        }
-
-        .progress-fill {
-            height: 100%;
-            transition: all 0.5s ease;
-            border-radius: 4px;
-        }
-
-        .alert-high { 
-            background: #ff0040; 
-            animation: alertPulse 1s infinite;
-        }
-        .alert-medium { background: #ff8800; }
-        .alert-low { background: #00ff41; }
-
-        @keyframes alertPulse {
-            0%, 100% { opacity: 1; box-shadow: 0 0 20px #ff0040; }
-            50% { opacity: 0.6; box-shadow: 0 0 40px #ff0040; }
-        }
-
-        .master-alert {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: rgba(255, 0, 64, 0.95);
-            color: white;
-            padding: 20px;
-            border-radius: 15px;
-            font-size: 24px;
-            font-weight: bold;
-            text-align: center;
-            box-shadow: 0 0 40px rgba(255, 0, 64, 0.8);
-            animation: masterAlert 2s infinite;
-            display: none;
-            z-index: 1000;
-        }
-
-        @keyframes masterAlert {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.1); }
-        }
-
-        .geometry-viz {
-            position: absolute;
-            bottom: 10px;
-            right: 10px;
-            width: 80px;
-            height: 60px;
-            border: 1px solid currentColor;
-            opacity: 0.6;
-        }
-
-        .candle-shape {
+        
+        .ema-bar {
             position: relative;
-            width: 100%;
-            height: 100%;
+            width: 80px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            overflow: hidden;
+            transition: all 0.5s ease;
         }
-
-        .wick {
+        
+        #ema13Bar { height: 250px; }
+        #ema24Bar { height: 200px; }
+        #ema34Bar { height: 150px; }
+        
+        .bar-fill {
             position: absolute;
-            left: 50%;
-            width: 2px;
-            background: currentColor;
-            transform: translateX(-50%);
-        }
-
-        .body {
-            position: absolute;
-            left: 25%;
-            width: 50%;
-            background: currentColor;
-            opacity: 0.8;
-        }
-
-        .status-bar {
-            position: fixed;
             bottom: 0;
-            left: 0;
-            right: 0;
-            background: rgba(0, 0, 0, 0.9);
-            padding: 10px 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-top: 2px solid #00ff41;
+            width: 100%;
+            background: linear-gradient(to top, #666, #999);
+            transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 8px;
+        }
+        
+        /* Harmony States */
+        .harmony-long .bar-fill {
+            background: linear-gradient(to top, #00ff88, #4fffb0);
+            box-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
+        }
+        
+        .harmony-short .bar-fill {
+            background: linear-gradient(to top, #ff4444, #ff7777);
+            box-shadow: 0 0 20px rgba(255, 68, 68, 0.5);
+        }
+        
+        .harmony-gray .bar-fill {
+            background: linear-gradient(to top, #666, #999);
+            box-shadow: none;
+        }
+        
+        .bar-label {
+            margin-top: 10px;
+            font-weight: bold;
             font-size: 14px;
         }
-
-        .connection-status {
-            display: flex;
-            align-items: center;
-            gap: 10px;
+        
+        .bar-value {
+            margin-top: 5px;
+            font-size: 12px;
+            color: #ccc;
         }
-
-        .status-dot {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            background: #00ff41;
-            animation: statusBlink 2s infinite;
+        
+        .harmony-indicator {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 20px;
+            border: 3px solid #666;
+            transition: all 0.5s ease;
         }
-
-        @keyframes statusBlink {
-            0%, 50% { opacity: 1; }
-            51%, 100% { opacity: 0.3; }
+        
+        .harmony-indicator.long {
+            background: rgba(0, 255, 136, 0.2);
+            border-color: #00ff88;
+            animation: glow-green 2s infinite;
         }
-
-        .symbol-selector {
-            background: rgba(0, 0, 0, 0.8);
-            border: 1px solid #00ff41;
-            color: #00ff41;
-            padding: 5px 10px;
+        
+        .harmony-indicator.short {
+            background: rgba(255, 68, 68, 0.2);
+            border-color: #ff4444;
+            animation: glow-red 2s infinite;
+        }
+        
+        .harmony-indicator.gray {
+            background: rgba(136, 136, 136, 0.2);
+            border-color: #888;
+        }
+        
+        @keyframes glow-green {
+            0%, 100% { box-shadow: 0 0 20px rgba(0, 255, 136, 0.3); }
+            50% { box-shadow: 0 0 40px rgba(0, 255, 136, 0.6); }
+        }
+        
+        @keyframes glow-red {
+            0%, 100% { box-shadow: 0 0 20px rgba(255, 68, 68, 0.3); }
+            50% { box-shadow: 0 0 40px rgba(255, 68, 68, 0.6); }
+        }
+        
+        .harmony-text {
+            font-size: 1.5em;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        
+        /* Tail Alert Styling */
+        .tail-alert {
+            background: rgba(255, 165, 0, 0.2);
+            border: 3px solid #ffaa00;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 15px 0;
+            text-align: center;
+            display: none;
+            animation: tail-pulse 1s infinite;
+        }
+        
+        .tail-alert.active {
+            display: block;
+        }
+        
+        @keyframes tail-pulse {
+            0%, 100% { 
+                transform: scale(1);
+                border-color: #ffaa00;
+            }
+            50% { 
+                transform: scale(1.02);
+                border-color: #ff8800;
+            }
+        }
+        
+        .btn {
+            background: linear-gradient(45deg, #00ff88, #00cc6a);
+            border: none;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin: 5px 0;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 255, 136, 0.3);
+        }
+        
+        .btn.danger {
+            background: linear-gradient(45deg, #ff4444, #cc0000);
+        }
+        
+        .btn.warning {
+            background: linear-gradient(45deg, #ffaa00, #cc8800);
+        }
+        
+        .btn:disabled {
+            background: #666;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .input-group {
+            margin: 15px 0;
+        }
+        
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        
+        .input-group input {
+            width: 100%;
+            padding: 10px;
+            border: none;
             border-radius: 5px;
-            font-family: inherit;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            font-size: 16px;
         }
+        
+        .input-group input::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+        
+        .warning-display {
+            background: rgba(255, 170, 0, 0.2);
+            border: 2px solid #ffaa00;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            margin: 15px 0;
+            display: none;
+        }
+        
+        .warning-display.active {
+            display: block;
+            animation: pulse 1s infinite;
+        }
+        
+        .countdown {
+            font-size: 2em;
+            font-weight: bold;
+            color: #ffaa00;
+        }
+        
+        .log-container {
+            height: 200px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 10px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            margin-top: 15px;
+        }
+        
+        .log-entry {
+            margin: 2px 0;
+            padding: 2px 5px;
+            border-radius: 3px;
+        }
+        
+        .log-entry.info { background: rgba(0, 255, 136, 0.2); }
+        .log-entry.warning { background: rgba(255, 170, 0, 0.2); }
+        .log-entry.error { background: rgba(255, 68, 68, 0.2); }
+        .log-entry.signal { background: rgba(0, 170, 255, 0.2); }
     </style>
 </head>
 <body>
-    <div class="radar-container">
-        <!-- Chart Section -->
-        <div class="chart-section">
-            <div class="chart-header">
-                🎯 LIVE MARKET SCAN: <span id="current-symbol">BTCUSDT</span> | 1M
-            </div>
-            <div id="tradingview-widget"></div>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 Smart Trading Bot</h1>
+            <p>Intelligent Entry Signals • Direction Filter • Smart Exit System</p>
         </div>
-
-        <!-- Detection Panel -->
-        <div class="detection-panel">
-            <!-- Fake Dump Detector -->
-            <div class="bot-detector fake-dump">
-                <div class="detector-title" style="color: #ff0040;">
-                    🔻 FAKE DUMP HUNTER
-                </div>
-                <div class="threat-level" style="color: #ff0040;" id="fake-dump-level">
-                    0%
-                </div>
-                <div class="metrics">
-                    <div class="metric">
-                        <span>Tail Ratio:</span>
-                        <span id="tail-ratio">0%</span>
-                    </div>
-                    <div class="metric">
-                        <span>Volume Spike:</span>
-                        <span id="volume-spike">1.0x</span>
-                    </div>
-                    <div class="metric">
-                        <span>Midpoint:</span>
-                        <span id="midpoint-level">N/A</span>
-                    </div>
-                    <div class="progress-bar">
-                        <div class="progress-fill" id="fake-dump-progress"></div>
-                    </div>
-                </div>
-                <div class="geometry-viz">
-                    <div class="candle-shape">
-                        <div class="wick" id="fake-wick" style="top: 0; height: 70%;"></div>
-                        <div class="body" id="fake-body" style="top: 60%; height: 10%;"></div>
-                    </div>
-                </div>
+        
+        <div class="main-panel">
+            <div class="price-display" id="priceDisplay">
+                <span id="currentPrice">Loading...</span>
+                <span class="price-change" id="priceChange">+0.00%</span>
             </div>
-
-            <!-- Lightning Wick Detector -->
-            <div class="bot-detector lightning-wick">
-                <div class="detector-title" style="color: #ff8800;">
-                    ⚡ LIGHTNING VELOCITY
+            
+            <!-- EMA GAME BARS -->
+            <div class="ema-game-container">
+                <h3>🎮 EMA Alignment Game</h3>
+                <div class="ema-bars-container">
+                    <div class="ema-bar-wrapper">
+                        <div class="ema-bar" id="ema13Bar">
+                            <div class="bar-fill" id="ema13Fill"></div>
+                            <div class="bar-label">EMA 13</div>
+                            <div class="bar-value" id="ema13Text">-</div>
+                        </div>
+                    </div>
+                    <div class="ema-bar-wrapper">
+                        <div class="ema-bar" id="ema24Bar">
+                            <div class="bar-fill" id="ema24Fill"></div>
+                            <div class="bar-label">EMA 24</div>
+                            <div class="bar-value" id="ema24Text">-</div>
+                        </div>
+                    </div>
+                    <div class="ema-bar-wrapper">
+                        <div class="ema-bar" id="ema34Bar">
+                            <div class="bar-fill" id="ema34Fill"></div>
+                            <div class="bar-label">EMA 34</div>
+                            <div class="bar-value" id="ema34Text">-</div>
+                        </div>
+                    </div>
                 </div>
-                <div class="threat-level" style="color: #ff8800;" id="lightning-level">
-                    0%
-                </div>
-                <div class="metrics">
-                    <div class="metric">
-                        <span>Velocity:</span>
-                        <span id="wick-velocity">0.0</span>
-                    </div>
-                    <div class="metric">
-                        <span>Recovery:</span>
-                        <span id="recovery-speed">0%</span>
-                    </div>
-                    <div class="metric">
-                        <span>Angle:</span>
-                        <span id="dump-angle">0°</span>
-                    </div>
-                    <div class="progress-bar">
-                        <div class="progress-fill" id="lightning-progress"></div>
-                    </div>
-                </div>
-                <div class="geometry-viz">
-                    <div class="candle-shape">
-                        <div class="wick" id="lightning-wick-viz" style="top: 20%; height: 60%;"></div>
-                        <div class="body" id="lightning-body" style="top: 70%; height: 15%;"></div>
-                    </div>
+                <div class="harmony-indicator" id="harmonyIndicator">
+                    <div class="harmony-text" id="harmonyText">INITIALIZING...</div>
                 </div>
             </div>
-
-            <!-- Volume Cliff Detector -->
-            <div class="bot-detector volume-cliff">
-                <div class="detector-title" style="color: #8844ff;">
-                    📊 VOLUME CLIFF
-                </div>
-                <div class="threat-level" style="color: #8844ff;" id="volume-level">
-                    0%
-                </div>
-                <div class="metrics">
-                    <div class="metric">
-                        <span>Volume Ratio:</span>
-                        <span id="current-volume">1.0x</span>
-                    </div>
-                    <div class="metric">
-                        <span>Cliff Drop:</span>
-                        <span id="cliff-drop">0%</span>
-                    </div>
-                    <div class="metric">
-                        <span>Manipulation:</span>
-                        <span id="manipulation-score">LOW</span>
-                    </div>
-                    <div class="progress-bar">
-                        <div class="progress-fill" id="volume-progress"></div>
-                    </div>
-                </div>
-                <div class="geometry-viz" style="border-color: #8844ff;">
-                    <div style="position: relative; width: 100%; height: 100%;">
-                        <div id="volume-bar" style="position: absolute; bottom: 0; left: 10%; width: 20%; background: #8844ff; height: 80%;"></div>
-                        <div id="cliff-bar" style="position: absolute; bottom: 0; left: 40%; width: 20%; background: #8844ff; height: 30%;"></div>
-                        <div id="current-bar" style="position: absolute; bottom: 0; left: 70%; width: 20%; background: #8844ff; height: 50%;"></div>
-                    </div>
-                </div>
+            
+            <!-- CANDLE TAIL ALERT -->
+            <div class="tail-alert" id="tailAlert">
+                <h3>🚨 EXPLOSIVE CANDLE DETECTED!</h3>
+                <p>Tail is <span id="tailRatio">3x</span> larger than body - High volatility!</p>
+            </div>
+            
+            <div class="signal-indicator neutral" id="entrySignal">
+                <span><strong>Entry Signal:</strong></span>
+                <span id="entrySignalText">Waiting...</span>
+            </div>
+            
+            <div class="warning-display" id="warningDisplay">
+                <h3>⚠️ STOP LOSS WARNING</h3>
+                <p id="warningText">Warning 1/2: You have time to decide...</p>
+                <div class="countdown" id="countdown">15</div>
+                <button class="btn warning" onclick="ignoreWarning()">Ignore Warning</button>
+                <button class="btn danger" onclick="forceExit()">Exit Now</button>
+            </div>
+            
+            <div class="log-container" id="logContainer">
+                <div class="log-entry info">🤖 Bot initialized - Ready to trade</div>
             </div>
         </div>
-    </div>
-
-    <!-- Master Alert -->
-    <div class="master-alert" id="master-alert">
-        🚨 HIGH BOT ACTIVITY DETECTED! 🚨
-    </div>
-
-    <!-- Status Bar -->
-    <div class="status-bar">
-        <div class="connection-status">
-            <div class="status-dot"></div>
-            <span>LIVE FEED ACTIVE</span>
+        
+        <div class="control-panel">
+            <div class="status-card">
+                <h3>🎯 Bot Status</h3>
+                <p><strong>Status:</strong> <span id="botStatus">Running</span></p>
+                <p><strong>Symbol:</strong> <span id="tradingSymbol">ADAUSDT</span></p>
+                <p><strong>Timeframe:</strong> <span id="currentTimeframe">15s</span></p>
+                <p><strong>Position:</strong> <span id="positionStatus">None</span></p>
+            </div>
+            
+            <div class="input-group">
+                <label>Binance API Key:</label>
+                <input type="password" id="apiKey" placeholder="Enter API Key">
+            </div>
+            
+            <div class="input-group">
+                <label>API Secret:</label>
+                <input type="password" id="apiSecret" placeholder="Enter API Secret">
+            </div>
+            
+            <div class="input-group">
+                <label>Timeframe (seconds):</label>
+                <select id="timeframe" onchange="updateTimeframe()">
+                    <option value="10">10 seconds</option>
+                    <option value="15" selected>15 seconds</option>
+                    <option value="30">30 seconds</option>
+                </select>
+            </div>
+            
+            <div class="input-group">
+                <label>Trading Symbol (Futures):</label>
+                <input type="text" id="symbol" value="ADAUSDT" placeholder="ADAUSDT, ETHUSDT, etc.">
+            </div>
+            
+            <div class="input-group">
+                <label>Profit Target (%):</label>
+                <input type="number" id="profitTarget" value="3.0" step="0.1">
+            </div>
+            
+            <div class="input-group">
+                <label>Stop Loss (%):</label>
+                <input type="number" id="stopLoss" value="1.5" step="0.1">
+            </div>
+            
+            <button class="btn" onclick="connectAPI()">Connect to Binance</button>
+            <button class="btn" onclick="toggleBot()" id="toggleBtn">Start Bot</button>
+            
+            <div class="status-card">
+                <h3>📊 Strategy Settings</h3>
+                <p><em>Paste your strategy logic in the JavaScript section below</em></p>
+                <button class="btn" onclick="testStrategy()">Test Strategy</button>
+            </div>
+            
+            <div class="status-card">
+                <h3>⚡ Quick Actions</h3>
+                <button class="btn" onclick="manualLong()">Manual LONG</button>
+                <button class="btn" onclick="manualShort()">Manual SHORT</button>
+                <button class="btn danger" onclick="emergencyExit()">Emergency Exit</button>
+            </div>
         </div>
-        <div style="display: flex; align-items: center; gap: 10px;">
-            <span>Symbol:</span>
-            <select class="symbol-selector" id="symbol-select">
-                <option value="BTCUSDT">BTCUSDT</option>
-                <option value="ETHUSDT">ETHUSDT</option>
-                <option value="ADAUSDT">ADAUSDT</option>
-                <option value="SOLUSDT">SOLUSDT</option>
-                <option value="FUNUSDT">FUNUSDT</option>
-                <option value="custom">Custom...</option>
-            </select>
-            <input type="text" 
-                   id="custom-symbol" 
-                   class="symbol-selector" 
-                   placeholder="Enter symbol (e.g. FUNUSDT)" 
-                   style="display: none; width: 180px;"
-                   maxlength="20">
-            <button id="apply-symbol" 
-                    class="symbol-selector" 
-                    style="display: none; background: #00ff41; color: black; border: none; cursor: pointer; padding: 6px 12px;">
-                Apply
-            </button>
-        </div>
-        <div id="last-update">Last Update: --:--:--</div>
     </div>
 
     <script>
-        // Initialize TradingView Widget
-        function initTradingViewWidget(symbol = 'BTCUSDT') {
-            const widgetConfig = {
-                "width": "100%",
-                "height": "100%",
-                "symbol": `BINANCE:${symbol}`,
-                "interval": "1",
-                "timezone": "Etc/UTC",
-                "theme": "dark",
-                "style": "1",
-                "locale": "en",
-                "toolbar_bg": "#000000",
-                "enable_publishing": false,
-                "hide_top_toolbar": false,
-                "hide_legend": true,
-                "save_image": false,
-                "container_id": "tradingview-widget"
-            };
-
-            // Clear existing widget
-            document.getElementById('tradingview-widget').innerHTML = '';
-            
-            // Create new widget script
-            const script = document.createElement('script');
-            script.type = 'text/javascript';
-            script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
-            script.async = true;
-            script.innerHTML = JSON.stringify(widgetConfig);
-            
-            document.getElementById('tradingview-widget').appendChild(script);
-        }
-
-        // Simulated real-time data (replace with actual WebSocket)
-        let botDetectionData = {
-            fakeDump: { level: 0, tailRatio: 0, volumeSpike: 1.0, midpoint: null },
-            lightning: { level: 0, velocity: 0, recovery: 0, angle: 0 },
-            volumeCliff: { level: 0, volumeRatio: 1.0, cliffDrop: 0, manipulation: 'LOW' }
+        // Global bot state
+        let botState = {
+            connected: false,
+            running: false,
+            symbol: 'ADAUSDT',
+            currentPrice: 0,
+            position: null,
+            htfDirection: null,
+            warnings: 0,
+            maxWarnings: 2,
+            warningTimeout: 15000, // 15 seconds
+            lastWarningTime: null,
+            profitTarget: 3.0,
+            stopLoss: 1.5,
+            // EMA strategy data
+            emaData: {
+                ema13: [],
+                ema24: [],
+                ema34: []
+            },
+            candleData: [],
+            timeframe: 15, // 15 second intervals
+            lastCandleTime: 0,
+            priceBuffer: []
         };
-
-        function updateDetectionDisplay() {
-            // Update Fake Dump
-            const fakeDumpLevel = botDetectionData.fakeDump.level;
-            document.getElementById('fake-dump-level').textContent = `${fakeDumpLevel}%`;
-            document.getElementById('tail-ratio').textContent = `${botDetectionData.fakeDump.tailRatio}%`;
-            document.getElementById('volume-spike').textContent = `${botDetectionData.fakeDump.volumeSpike.toFixed(1)}x`;
-            document.getElementById('midpoint-level').textContent = botDetectionData.fakeDump.midpoint || 'N/A';
+        
+        let priceWS = null;
+        let apiCredentials = null;
+        
+        // =============== BINANCE API FUNCTIONS ===============
+        
+        async function connectAPI() {
+            const apiKey = document.getElementById('apiKey').value;
+            const apiSecret = document.getElementById('apiSecret').value;
             
-            const fakeDumpProgress = document.getElementById('fake-dump-progress');
-            fakeDumpProgress.style.width = `${fakeDumpLevel}%`;
-            fakeDumpProgress.className = `progress-fill ${fakeDumpLevel > 70 ? 'alert-high' : fakeDumpLevel > 40 ? 'alert-medium' : 'alert-low'}`;
-
-            // Update Lightning
-            const lightningLevel = botDetectionData.lightning.level;
-            document.getElementById('lightning-level').textContent = `${lightningLevel}%`;
-            document.getElementById('wick-velocity').textContent = botDetectionData.lightning.velocity.toFixed(1);
-            document.getElementById('recovery-speed').textContent = `${botDetectionData.lightning.recovery}%`;
-            document.getElementById('dump-angle').textContent = `${botDetectionData.lightning.angle}°`;
-            
-            const lightningProgress = document.getElementById('lightning-progress');
-            lightningProgress.style.width = `${lightningLevel}%`;
-            lightningProgress.className = `progress-fill ${lightningLevel > 70 ? 'alert-high' : lightningLevel > 40 ? 'alert-medium' : 'alert-low'}`;
-
-            // Update Volume Cliff
-            const volumeLevel = botDetectionData.volumeCliff.level;
-            document.getElementById('volume-level').textContent = `${volumeLevel}%`;
-            document.getElementById('current-volume').textContent = `${botDetectionData.volumeCliff.volumeRatio.toFixed(1)}x`;
-            document.getElementById('cliff-drop').textContent = `${botDetectionData.volumeCliff.cliffDrop}%`;
-            document.getElementById('manipulation-score').textContent = botDetectionData.volumeCliff.manipulation;
-            
-            const volumeProgress = document.getElementById('volume-progress');
-            volumeProgress.style.width = `${volumeLevel}%`;
-            volumeProgress.className = `progress-fill ${volumeLevel > 70 ? 'alert-high' : volumeLevel > 40 ? 'alert-medium' : 'alert-low'}`;
-
-            // Master Alert
-            const totalThreat = (fakeDumpLevel + lightningLevel + volumeLevel) / 3;
-            if (totalThreat > 70) {
-                document.getElementById('master-alert').style.display = 'block';
-            } else {
-                document.getElementById('master-alert').style.display = 'none';
+            if (!apiKey || !apiSecret) {
+                addLog('Please enter API credentials', 'error');
+                return;
             }
-
-            // Update timestamp
-            document.getElementById('last-update').textContent = `Last Update: ${new Date().toLocaleTimeString()}`;
+            
+            apiCredentials = { apiKey, apiSecret };
+            botState.connected = true;
+            
+            addLog('✅ Connected to Binance API', 'info');
+            updateUI();
+            
+            // Start price websocket
+            startPriceWebSocket();
         }
-
-        // Simulate real-time data updates
-        function simulateData() {
-            // Random bot activity simulation
-            if (Math.random() < 0.1) { // 10% chance of bot activity
-                botDetectionData.fakeDump.level = Math.floor(Math.random() * 100);
-                botDetectionData.fakeDump.tailRatio = Math.floor(Math.random() * 80) + 20;
-                botDetectionData.fakeDump.volumeSpike = (Math.random() * 5) + 1;
-                botDetectionData.fakeDump.midpoint = (Math.random() * 10000 + 40000).toFixed(2);
-            } else {
-                botDetectionData.fakeDump.level = Math.max(0, botDetectionData.fakeDump.level - 5);
-            }
-
-            if (Math.random() < 0.08) {
-                botDetectionData.lightning.level = Math.floor(Math.random() * 100);
-                botDetectionData.lightning.velocity = Math.random() * 10;
-                botDetectionData.lightning.recovery = Math.floor(Math.random() * 100);
-                botDetectionData.lightning.angle = Math.floor(Math.random() * 90);
-            } else {
-                botDetectionData.lightning.level = Math.max(0, botDetectionData.lightning.level - 3);
-            }
-
-            if (Math.random() < 0.12) {
-                botDetectionData.volumeCliff.level = Math.floor(Math.random() * 100);
-                botDetectionData.volumeCliff.volumeRatio = (Math.random() * 8) + 1;
-                botDetectionData.volumeCliff.cliffDrop = Math.floor(Math.random() * 80) + 20;
-                const manipulationLevels = ['LOW', 'MODERATE', 'HIGH', 'EXTREME'];
-                botDetectionData.volumeCliff.manipulation = manipulationLevels[Math.floor(Math.random() * 4)];
-            } else {
-                botDetectionData.volumeCliff.level = Math.max(0, botDetectionData.volumeCliff.level - 4);
-            }
-
-            updateDetectionDisplay();
-        }
-
-        // Symbol change handler
-        document.getElementById('symbol-select').addEventListener('change', function(e) {
-            const selectValue = e.target.value;
-            const customInput = document.getElementById('custom-symbol');
-            const applyButton = document.getElementById('apply-symbol');
+        
+        function startPriceWebSocket() {
+            const symbol = botState.symbol.toLowerCase();
+            // Use fstream for futures - get tick by tick data
+            const wsUrl = `wss://fstream.binance.com/ws/${symbol}@ticker`;
             
-            if (selectValue === 'custom') {
-                customInput.style.display = 'inline-block';
-                applyButton.style.display = 'inline-block';
-                customInput.focus();
+            priceWS = new WebSocket(wsUrl);
+            
+            priceWS.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                botState.currentPrice = parseFloat(data.c);
+                const priceChange = parseFloat(data.P);
+                
+                updatePriceDisplay(botState.currentPrice, priceChange);
+                
+                // Add price to buffer for custom timeframe calculation
+                addPriceToBuffer(botState.currentPrice);
+                
+                if (botState.running) {
+                    checkStrategy();
+                    monitorPosition();
+                }
+            };
+            
+            priceWS.onerror = function(error) {
+                addLog('❌ WebSocket error: ' + error, 'error');
+            };
+            
+            addLog(`📊 Connected to ${botState.symbol} futures stream`, 'info');
+        }
+        
+        function addPriceToBuffer(price) {
+            const now = Date.now();
+            
+            // Add price with timestamp
+            botState.priceBuffer.push({
+                price: price,
+                timestamp: now
+            });
+            
+            // Check if we need to create a new candle (every 10 or 15 seconds)
+            if (now - botState.lastCandleTime >= botState.timeframe * 1000) {
+                createCustomCandle();
+                botState.lastCandleTime = now;
+            }
+            
+            // Keep buffer size manageable (last 100 entries)
+            if (botState.priceBuffer.length > 100) {
+                botState.priceBuffer = botState.priceBuffer.slice(-100);
+            }
+        }
+        
+        function createCustomCandle() {
+            if (botState.priceBuffer.length === 0) return;
+            
+            // Calculate OHLC from price buffer for the timeframe
+            const recentPrices = botState.priceBuffer
+                .filter(p => Date.now() - p.timestamp <= botState.timeframe * 1000)
+                .map(p => p.price);
+            
+            if (recentPrices.length === 0) return;
+            
+            const open = recentPrices[0];
+            const high = Math.max(...recentPrices);
+            const low = Math.min(...recentPrices);
+            const close = recentPrices[recentPrices.length - 1];
+            
+            // Calculate candle body and tail for explosion detection
+            const body = Math.abs(close - open);
+            const upperTail = high - Math.max(open, close);
+            const lowerTail = Math.min(open, close) - low;
+            const maxTail = Math.max(upperTail, lowerTail);
+            
+            // Check for explosive candle (tail 3x+ body size)
+            if (body > 0 && maxTail / body >= 3) {
+                showTailAlert(maxTail / body, maxTail === upperTail ? 'UPPER' : 'LOWER');
+            }
+            
+            // Use close price for EMA calculation
+            updateEMAData(close);
+            
+            addLog(`📊 ${botState.timeframe}s candle: O:${open.toFixed(4)} H:${high.toFixed(4)} L:${low.toFixed(4)} C:${close.toFixed(4)}`, 'info');
+        }
+        
+        // =============== EMA CALCULATION FUNCTIONS ===============
+        
+        function updateEMAData(newPrice) {
+            // Add new price to candle data
+            botState.candleData.push(newPrice);
+            
+            // Keep only last 100 candles for performance
+            if (botState.candleData.length > 100) {
+                botState.candleData = botState.candleData.slice(-100);
+            }
+            
+            // Calculate EMAs if we have enough data
+            if (botState.candleData.length >= 34) {
+                botState.emaData.ema13 = calculateEMA(botState.candleData, 13);
+                botState.emaData.ema24 = calculateEMA(botState.candleData, 24);
+                botState.emaData.ema34 = calculateEMA(botState.candleData, 34);
+                
+                // Update EMA display
+                updateEMADisplay();
+            }
+        }
+        
+        function calculateEMA(prices, period) {
+            const k = 2 / (period + 1);
+            let ema = prices[0]; // Start with first price
+            const result = [ema];
+            
+            for (let i = 1; i < prices.length; i++) {
+                ema = (prices[i] * k) + (ema * (1 - k));
+                result.push(ema);
+            }
+            
+            return result;
+        }
+        
+        function getCurrentEMAValues() {
+            if (botState.emaData.ema13.length === 0) return null;
+            
+            const lastIndex = botState.emaData.ema13.length - 1;
+            return {
+                ema13: botState.emaData.ema13[lastIndex],
+                ema24: botState.emaData.ema24[lastIndex],
+                ema34: botState.emaData.ema34[lastIndex]
+            };
+        }
+        
+        // =============== STRATEGY FUNCTIONS ===============
+        // 🎯 EMA 13 > EMA 24 > EMA 34 = LONG | Reverse = SHORT | Other = GRAY
+        
+        function analyzeHigherTimeframe() {
+            const emas = getCurrentEMAValues();
+            
+            if (!emas) {
+                botState.htfDirection = 'GRAY';
+                updateEMAGameDisplay();
+                return;
+            }
+            
+            // EMA alignment check: 13 > 24 > 34 = LONG
+            if (emas.ema13 > emas.ema24 && emas.ema24 > emas.ema34) {
+                botState.htfDirection = 'LONG';
+                addLog(`🎮 HARMONY ACHIEVED: LONG BIAS! All EMAs in perfect order`, 'signal');
+            }
+            // Reverse alignment: 34 > 24 > 13 = SHORT  
+            else if (emas.ema34 > emas.ema24 && emas.ema24 > emas.ema13) {
+                botState.htfDirection = 'SHORT';
+                addLog(`🎮 HARMONY ACHIEVED: SHORT BIAS! All EMAs in reverse order`, 'signal');
+            }
+            // Any other combination = GRAY (no clear trend)
+            else {
+                botState.htfDirection = 'GRAY';
+                addLog(`🎮 NO HARMONY: Mixed EMA alignment - Stay patient!`, 'info');
+            }
+            
+            updateEMAGameDisplay();
+        }
+        
+        function checkEntrySignal() {
+            // Only generate signals when EMA alignment is clear (not GRAY)
+            if (!botState.htfDirection || botState.htfDirection === 'GRAY') {
+                return null;
+            }
+            
+            const emas = getCurrentEMAValues();
+            if (!emas) return null;
+            
+            // Entry signal logic - you can customize this
+            // For now, using price crossing above/below EMA13 as entry trigger
+            const currentPrice = botState.currentPrice;
+            const ema13 = emas.ema13;
+            
+            let signal = null;
+            
+            // LONG signal: price crosses above EMA13 when alignment is LONG
+            if (botState.htfDirection === 'LONG' && currentPrice > ema13) {
+                const strength = ((currentPrice - ema13) / ema13) * 1000; // Strength based on distance from EMA
+                if (strength > 0.1) { // Minimum 0.01% above EMA13
+                    signal = {
+                        direction: 'LONG',
+                        strength: Math.min(strength, 3), // Cap at 3
+                        price: currentPrice,
+                        reason: `Price ${currentPrice.toFixed(2)} above EMA13 ${ema13.toFixed(2)}`
+                    };
+                }
+            }
+            // SHORT signal: price crosses below EMA13 when alignment is SHORT
+            else if (botState.htfDirection === 'SHORT' && currentPrice < ema13) {
+                const strength = ((ema13 - currentPrice) / ema13) * 1000; // Strength based on distance from EMA
+                if (strength > 0.1) { // Minimum 0.01% below EMA13
+                    signal = {
+                        direction: 'SHORT',
+                        strength: Math.min(strength, 3), // Cap at 3
+                        price: currentPrice,
+                        reason: `Price ${currentPrice.toFixed(2)} below EMA13 ${ema13.toFixed(2)}`
+                    };
+                }
+            }
+            
+            return signal;
+        }
+        
+        function validateTradeDirection(signalDirection) {
+            // Prevent trades when EMA alignment is GRAY
+            if (botState.htfDirection === 'GRAY') {
+                addLog(`🚫 Trade BLOCKED: EMA alignment is GRAY (no clear trend)`, 'warning');
+                playAlert('block');
+                return false;
+            }
+            
+            // Prevent trades against EMA alignment direction
+            if (signalDirection === botState.htfDirection) {
+                addLog(`✅ Trade APPROVED: ${signalDirection} matches EMA alignment`, 'signal');
+                return true;
             } else {
-                customInput.style.display = 'none';
-                applyButton.style.display = 'none';
-                document.getElementById('current-symbol').textContent = selectValue;
-                initTradingViewWidget(selectValue);
+                addLog(`🚫 Trade BLOCKED: ${signalDirection} against EMA alignment ${botState.htfDirection}`, 'warning');
+                playAlert('block');
+                return false;
             }
-        });
-
-        // Custom symbol apply handler
-        document.getElementById('apply-symbol').addEventListener('click', function() {
-            const customSymbol = document.getElementById('custom-symbol').value.toUpperCase().trim();
-            if (customSymbol) {
-                // Validate format (should end with USDT)
-                if (!customSymbol.endsWith('USDT')) {
-                    alert('Please enter a valid USDT pair (e.g., FUNUSDT)');
-                    return;
-                }
-                
-                document.getElementById('current-symbol').textContent = customSymbol;
-                initTradingViewWidget(customSymbol);
-                
-                // Add to dropdown if not exists
-                const select = document.getElementById('symbol-select');
-                let exists = false;
-                for (let option of select.options) {
-                    if (option.value === customSymbol) {
-                        exists = true;
-                        option.selected = true;
-                        break;
-                    }
-                }
-                
-                if (!exists) {
-                    const newOption = document.createElement('option');
-                    newOption.value = customSymbol;
-                    newOption.textContent = customSymbol;
-                    newOption.selected = true;
-                    select.insertBefore(newOption, select.querySelector('option[value="custom"]'));
-                }
-                
-                // Hide custom input
-                document.getElementById('custom-symbol').style.display = 'none';
-                document.getElementById('apply-symbol').style.display = 'none';
+        }
+        
+        function checkStrategy() {
+            // Update EMA analysis every new candle (every 10/15 seconds)
+            if (!botState.lastStrategyUpdate || Date.now() - botState.lastStrategyUpdate > botState.timeframe * 1000) {
+                analyzeHigherTimeframe();
+                botState.lastStrategyUpdate = Date.now();
             }
-        });
-
-        // Enter key handler for custom input
-        document.getElementById('custom-symbol').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                document.getElementById('apply-symbol').click();
+            
+            // Check for entry signals more frequently (every few seconds)
+            const signal = checkEntrySignal();
+            
+            if (signal && signal.strength > 0.5) { // Lower threshold for faster timeframe
+                if (validateTradeDirection(signal.direction)) {
+                    showEntryAlert(signal);
+                }
             }
-        });
-
+        }
+        
+        // =============== POSITION MONITORING ===============
+        
+        function monitorPosition() {
+            if (!botState.position) return;
+            
+            const pnl = calculatePNL();
+            
+            // Check stop loss
+            if (pnl <= -botState.stopLoss) {
+                handleStopLoss(pnl);
+            }
+            // Check profit target
+            else if (pnl >= botState.profitTarget) {
+                addLog(`🎯 PROFIT TARGET HIT: ${pnl.toFixed(2)}%`, 'signal');
+                closePosition();
+            }
+            // Reset warnings if recovered
+            else if (pnl > -botState.stopLoss + 0.2 && botState.warnings > 0) {
+                resetWarnings();
+            }
+        }
+        
+        function handleStopLoss(pnl) {
+            const now = Date.now();
+            
+            if (botState.warnings === 0) {
+                // First warning
+                botState.warnings = 1;
+                botState.lastWarningTime = now;
+                showWarning(1, pnl);
+                
+            } else if (botState.warnings === 1 && 
+                      (now - botState.lastWarningTime) > botState.warningTimeout) {
+                // Second warning
+                botState.warnings = 2;
+                botState.lastWarningTime = now;
+                showWarning(2, pnl);
+                
+            } else if (botState.warnings >= 2 && 
+                      (now - botState.lastWarningTime) > botState.warningTimeout) {
+                // Force exit
+                addLog('🚨 TIME\'S UP! Executing forced exit...', 'error');
+                forceExit();
+            }
+        }
+        
+        function calculatePNL() {
+            if (!botState.position) return 0;
+            
+            const entryPrice = botState.position.entryPrice;
+            const currentPrice = botState.currentPrice;
+            const side = botState.position.side;
+            
+            if (side === 'LONG') {
+                return ((currentPrice - entryPrice) / entryPrice) * 100;
+            } else {
+                return ((entryPrice - currentPrice) / entryPrice) * 100;
+            }
+        }
+        
+        // =============== UI FUNCTIONS ===============
+        
+        function updatePriceDisplay(price, change) {
+            document.getElementById('currentPrice').textContent = `$${price.toFixed(2)}`;
+            const changeEl = document.getElementById('priceChange');
+            changeEl.textContent = `${change >= 0 ? '+' : ''}${change.toFixed(2)}%`;
+            changeEl.className = `price-change ${change >= 0 ? 'positive' : 'negative'}`;
+        }
+        
+        function updateEMAGameDisplay() {
+            const emas = getCurrentEMAValues();
+            
+            if (!emas) {
+                document.getElementById('harmonyText').textContent = 'INITIALIZING...';
+                return;
+            }
+            
+            // Update bar values
+            document.getElementById('ema13Text').textContent = emas.ema13.toFixed(2);
+            document.getElementById('ema24Text').textContent = emas.ema24.toFixed(2);
+            document.getElementById('ema34Text').textContent = emas.ema34.toFixed(2);
+            
+            // Calculate relative heights for visual effect (EMA13 always tallest)
+            const minEma = Math.min(emas.ema13, emas.ema24, emas.ema34);
+            const maxEma = Math.max(emas.ema13, emas.ema24, emas.ema34);
+            const range = maxEma - minEma || 1;
+            
+            // Calculate fill heights (percentage of bar height)
+            const ema13Height = 90; // Always highest
+            const ema24Height = 70 + ((emas.ema24 - minEma) / range) * 20;
+            const ema34Height = 50 + ((emas.ema34 - minEma) / range) * 20;
+            
+            // Update bar fills
+            document.getElementById('ema13Fill').style.height = `${ema13Height}%`;
+            document.getElementById('ema24Fill').style.height = `${ema24Height}%`;
+            document.getElementById('ema34Fill').style.height = `${ema34Height}%`;
+            
+            // Remove all harmony classes
+            const container = document.querySelector('.ema-game-container');
+            const harmonyIndicator = document.getElementById('harmonyIndicator');
+            const harmonyText = document.getElementById('harmonyText');
+            
+            container.classList.remove('harmony-long', 'harmony-short', 'harmony-gray');
+            harmonyIndicator.classList.remove('long', 'short', 'gray');
+            
+            // Apply harmony state
+            if (botState.htfDirection === 'LONG') {
+                container.classList.add('harmony-long');
+                harmonyIndicator.classList.add('long');
+                harmonyText.textContent = '🟢 PERFECT HARMONY - LONG BIAS';
+                playAlert('harmony');
+            } else if (botState.htfDirection === 'SHORT') {
+                container.classList.add('harmony-short');
+                harmonyIndicator.classList.add('short');
+                harmonyText.textContent = '🔴 PERFECT HARMONY - SHORT BIAS';
+                playAlert('harmony');
+            } else {
+                container.classList.add('harmony-gray');
+                harmonyIndicator.classList.add('gray');
+                harmonyText.textContent = '⚪ NO HARMONY - WAIT FOR ALIGNMENT';
+            }
+        }
+        
+        function showTailAlert(ratio, direction) {
+            const alertEl = document.getElementById('tailAlert');
+            const ratioEl = document.getElementById('tailRatio');
+            
+            ratioEl.textContent = `${ratio.toFixed(1)}x`;
+            alertEl.classList.add('active');
+            
+            addLog(`🚨 EXPLOSIVE CANDLE! ${direction} tail is ${ratio.toFixed(1)}x body size - HIGH VOLATILITY!`, 'warning');
+            playAlert('explosion');
+            
+            // Auto hide after 10 seconds
+            setTimeout(() => {
+                alertEl.classList.remove('active');
+            }, 10000);
+        }
+        
+        function showEntryAlert(signal) {
+            const el = document.getElementById('entrySignal');
+            const textEl = document.getElementById('entrySignalText');
+            
+            textEl.textContent = `${signal.direction} Signal (${signal.strength.toFixed(1)})`;
+            el.className = `signal-indicator ${signal.direction.toLowerCase()}`;
+            
+            addLog(`🎯 ENTRY SIGNAL: ${signal.direction} | Strength: ${signal.strength.toFixed(2)}`, 'signal');
+            playAlert('entry');
+            
+            // Reset after 5 seconds
+            setTimeout(() => {
+                textEl.textContent = 'Waiting...';
+                el.className = 'signal-indicator neutral';
+            }, 5000);
+        }
+        
+        function showWarning(warningNum, pnl) {
+            const warningEl = document.getElementById('warningDisplay');
+            const textEl = document.getElementById('warningText');
+            const countdownEl = document.getElementById('countdown');
+            
+            textEl.textContent = `Warning ${warningNum}/2: Stop loss hit at ${pnl.toFixed(2)}%`;
+            warningEl.classList.add('active');
+            
+            playAlert('warning');
+            
+            // Countdown timer
+            let timeLeft = botState.warningTimeout / 1000;
+            const countdownInterval = setInterval(() => {
+                countdownEl.textContent = timeLeft;
+                timeLeft--;
+                
+                if (timeLeft < 0) {
+                    clearInterval(countdownInterval);
+                }
+            }, 1000);
+        }
+        
+        function resetWarnings() {
+            botState.warnings = 0;
+            botState.lastWarningTime = null;
+            document.getElementById('warningDisplay').classList.remove('active');
+            addLog('📈 Position recovered - warnings reset', 'info');
+        }
+        
+        function addLog(message, type = 'info') {
+            const logContainer = document.getElementById('logContainer');
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry ${type}`;
+            logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+        
+        function playAlert(type) {
+            // Create audio context for alerts
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gain = audioContext.createGain();
+            
+            oscillator.connect(gain);
+            gain.connect(audioContext.destination);
+            
+            // Different tones for different alerts
+            const frequencies = {
+                entry: 800,
+                warning: 600,
+                exit: 400,
+                block: 300,
+                harmony: 1000,
+                explosion: 200
+            };
+            
+            oscillator.frequency.setValueAtTime(frequencies[type] || 500, audioContext.currentTime);
+            oscillator.type = type === 'harmony' ? 'triangle' : type === 'explosion' ? 'sawtooth' : 'sine';
+            gain.gain.setValueAtTime(0.1, audioContext.currentTime);
+            
+            if (type === 'harmony') {
+                // Play a chord for harmony
+                oscillator.start();
+                oscillator.stop(audioContext.currentTime + 0.5);
+            } else if (type === 'explosion') {
+                // Play a dramatic sound for tail alerts
+                oscillator.start();
+                oscillator.stop(audioContext.currentTime + 0.3);
+            } else {
+                oscillator.start();
+                oscillator.stop(audioContext.currentTime + 0.2);
+            }
+        }
+        
+        // =============== CONTROL FUNCTIONS ===============
+        
+        function toggleBot() {
+            if (!botState.connected) {
+                addLog('❌ Please connect to Binance API first', 'error');
+                return;
+            }
+            
+            botState.running = !botState.running;
+            const btn = document.getElementById('toggleBtn');
+            
+            if (botState.running) {
+                btn.textContent = 'Stop Bot';
+                btn.classList.add('danger');
+                addLog('🚀 Bot started - monitoring strategy...', 'info');
+            } else {
+                btn.textContent = 'Start Bot';
+                btn.classList.remove('danger');
+                addLog('🛑 Bot stopped', 'info');
+            }
+            
+            updateUI();
+        }
+        
+        function ignoreWarning() {
+            addLog('⏭️ Warning ignored by user', 'warning');
+            resetWarnings();
+        }
+        
+        function forceExit() {
+            addLog('🚨 Manual exit executed', 'error');
+            closePosition();
+        }
+        
+        function closePosition() {
+            if (botState.position) {
+                const pnl = calculatePNL();
+                addLog(`✅ Position closed | P&L: ${pnl.toFixed(2)}%`, 'info');
+                botState.position = null;
+                resetWarnings();
+                updateUI();
+            }
+        }
+        
+        function manualLong() {
+            if (validateTradeDirection('LONG')) {
+                botState.position = {
+                    side: 'LONG',
+                    entryPrice: botState.currentPrice,
+                    timestamp: Date.now()
+                };
+                addLog(`📈 Manual LONG entered at $${botState.currentPrice}`, 'signal');
+                updateUI();
+            }
+        }
+        
+        function manualShort() {
+            if (validateTradeDirection('SHORT')) {
+                botState.position = {
+                    side: 'SHORT',
+                    entryPrice: botState.currentPrice,
+                    timestamp: Date.now()
+                };
+                addLog(`📉 Manual SHORT entered at $${botState.currentPrice}`, 'signal');
+                updateUI();
+            }
+        }
+        
+        function emergencyExit() {
+            if (confirm('Are you sure you want to emergency exit?')) {
+                closePosition();
+            }
+        }
+        
+        function testStrategy() {
+            addLog('🧪 Testing strategy...', 'info');
+            analyzeHigherTimeframe();
+            
+            // Simulate a signal
+            setTimeout(() => {
+                const signal = { direction: 'LONG', strength: 2.1, price: botState.currentPrice };
+                showEntryAlert(signal);
+            }, 1000);
+        }
+        
+        function updateUI() {
+            document.getElementById('botStatus').textContent = botState.running ? 'Running' : 'Stopped';
+            document.getElementById('tradingSymbol').textContent = botState.symbol;
+            document.getElementById('currentTimeframe').textContent = `${botState.timeframe}s`;
+            document.getElementById('positionStatus').textContent = botState.position ? 
+                `${botState.position.side} @ ${botState.position.entryPrice}` : 'None';
+        }
+        
         // Initialize
-        document.addEventListener('DOMContentLoaded', function() {
-            initTradingViewWidget();
-            updateDetectionDisplay();
-            
-            // Update every 2 seconds
-            setInterval(simulateData, 2000);
-        });
+        addLog('🤖 Smart Trading Bot loaded - 10/15 second timeframes ready', 'info');
+        addLog('📊 Enter API credentials and select your timeframe to start', 'info');
     </script>
 </body>
 </html>
