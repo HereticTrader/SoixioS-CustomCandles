@@ -473,7 +473,7 @@
                 <input type="number" id="stopLoss" value="1.5" step="0.1">
             </div>
             
-            <button class="btn" onclick="connectAPI()">Connect to Binance</button>
+            <button class="btn" onclick="connectAPI()">🎮 Start Demo Mode</button>
             <button class="btn" onclick="toggleBot()" id="toggleBtn">Start Bot</button>
             
             <div class="status-card">
@@ -484,8 +484,8 @@
             
             <div class="status-card">
                 <h3>⚡ Quick Actions</h3>
-                <button class="btn" onclick="manualLong()">Manual LONG</button>
-                <button class="btn" onclick="manualShort()">Manual SHORT</button>
+                <button class="btn" onclick="manualLong()">📈 DEMO LONG</button>
+                <button class="btn" onclick="manualShort()">📉 DEMO SHORT</button>
                 <button class="btn danger" onclick="emergencyExit()">Emergency Exit</button>
             </div>
         </div>
@@ -524,18 +524,14 @@
         // =============== BINANCE API FUNCTIONS ===============
         
         async function connectAPI() {
-            const apiKey = document.getElementById('apiKey').value;
-            const apiSecret = document.getElementById('apiSecret').value;
+            // Demo mode - no API needed for testing
+            addLog('🎮 DEMO MODE: Using live price feeds without trading', 'info');
             
-            if (!apiKey || !apiSecret) {
-                addLog('Please enter API credentials', 'error');
-                return;
-            }
-            
-            apiCredentials = { apiKey, apiSecret };
             botState.connected = true;
+            botState.symbol = document.getElementById('symbol').value.toUpperCase() || 'ADAUSDT';
             
-            addLog('✅ Connected to Binance API', 'info');
+            addLog('✅ Connected to Binance public feeds', 'info');
+            addLog('💡 You can test all features except actual trading', 'info');
             updateUI();
             
             // Start price websocket
@@ -1018,7 +1014,7 @@
         
         function toggleBot() {
             if (!botState.connected) {
-                addLog('❌ Please connect to Binance API first', 'error');
+                addLog('❌ Please start Demo Mode first', 'error');
                 return;
             }
             
@@ -1028,7 +1024,8 @@
             if (botState.running) {
                 btn.textContent = 'Stop Bot';
                 btn.classList.add('danger');
-                addLog('🚀 Bot started - monitoring strategy...', 'info');
+                addLog('🚀 DEMO Bot started - monitoring strategy...', 'info');
+                addLog('💡 Try different symbols and watch the EMA game bars!', 'info');
             } else {
                 btn.textContent = 'Start Bot';
                 btn.classList.remove('danger');
@@ -1108,8 +1105,9 @@
         }
         
         // Initialize
-        addLog('🤖 Smart Trading Bot loaded - 10/15 second timeframes ready', 'info');
-        addLog('📊 Enter API credentials and select your timeframe to start', 'info');
+        addLog('🎮 Smart Trading Bot - DEMO MODE Ready!', 'info');
+        addLog('✅ No API needed - Test with live prices from any symbol', 'info');
+        addLog('🎯 Try: BTCUSDT, ETHUSDT, ADAUSDT, SOLUSDT, etc.', 'info');
     </script>
 </body>
 </html>
